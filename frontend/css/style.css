@@ -3,18 +3,33 @@
   margin: 0;
   box-sizing: border-box;
 }
-
+html {
+  font-family: Arial, Helvetica, sans-serif;
+}
 header {
-  background-color: red;
+  background-color: #f8f9fa;
   height: 48px;
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.3);
 }
 header .logo {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+header .logo img {
   margin-left: 20px;
   text-align: center;
+  height: 48px;
+  width: 48px;
+}
+header strong {
+  margin-left: 10px;
 }
 .navigation {
   display: flex;
@@ -32,9 +47,7 @@ header .logo {
 .navigation a {
   height: 100%;
   text-decoration: none;
-  text-transform: uppercase;
   font-family: Arial, Helvetica, sans-serif;
-  font-weight: 500;
   color: black;
   padding: 0 15px;
   display: flex;
@@ -42,6 +55,71 @@ header .logo {
 }
 
 .navigation a:hover {
-  background-color: rgb(95, 54, 25);
+  background-color: rgba(164, 199, 233, 0.1);
+  color: black;
+}
+#home {
+  background-color: #f8fbff;
+  width: 100%;
+  height: 600px;
+  display: flex;
+  align-items: center;
+}
+.home-left {
+  width: 50%;
+  margin-left: 130px;
+}
+.home-left .home-title {
+  color: #2563eb;
+}
+.home-left span {
+  color: #2563eb;
+}
+.home-left h1 {
+  font-size: 52px;
+}
+.home-left .home-content {
+  margin: 30px 0;
+  color: rgba(0, 0, 0, 0.3);
+}
+.home-left .button {
+  display: flex;
+  gap: 30px;
+}
+.home-left .button .button-left {
+  text-decoration: none;
   color: white;
+  background: #2563eb;
+  padding: 13px 22px;
+  border-radius: 7px;
+}
+.home-left .button .button-right {
+  text-decoration: none;
+  color: black;
+  background: white;
+  padding: 13px 22px;
+  border-radius: 7px;
+  border: 1px solid #dbe2ea;
+}
+#home .home-right {
+  width: 20%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #dbeafe;
+  border-radius: 11px;
+  margin-left: 80px;
+  padding: 20px;
+}
+.home-right img {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.home-right p {
+  text-align: center;
+  color: #2563eb;
+  font-weight: bold;
+  margin-top: 10px;
 }
