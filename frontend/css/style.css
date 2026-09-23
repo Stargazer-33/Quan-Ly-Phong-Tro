@@ -61,8 +61,7 @@ header strong {
   padding: 0 15px;
   display: flex;
   align-items: center;
-}
-
+};
 .navigation a:hover {
   background-color: rgba(164, 199, 233, 0.1);
   color: black;
@@ -401,4 +400,191 @@ footer{
   padding-top: 20px;
   color: #64748b;
   font-size: 11px;
+}
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4); /* Làm tối nhẹ nền web phía sau */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999; /* Đảm bảo nổi lên trên cùng */
+}
+
+/* Khung Popup Glassmorphism */
+.login-box {
+  position: relative;
+  width: 360px;
+  padding: 40px 30px 30px;
+  background: rgba(255, 255, 255, 0.35);
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 20px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+.close-btn {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 38px;
+  height: 38px;
+  background: #18222f;
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  font-size: 22px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.close-btn:hover {
+  transform: scale(1.1);
+}
+
+.login-box h2 {
+  font-size: 32px;
+  color: #18222f;
+  text-align: center;
+  margin-bottom: 25px;
+  font-weight: 700;
+}
+
+.input-box {
+  position: relative;
+  width: 100%;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #18222f;
+}
+
+.input-box input {
+  width: 100%;
+  height: 40px;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  color: #18222f;
+  padding: 0 35px 0 5px;
+  font-weight: 500;
+}
+
+.input-box label {
+  position: absolute;
+  top: 50%;
+  left: 5px;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: #2c3e50;
+  pointer-events: none;
+  transition: 0.3s ease;
+}
+
+.input-box input:focus ~ label,
+.input-box input:not(:placeholder-shown) ~ label {
+  top: -6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #18222f;
+}
+
+.input-box i {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: #18222f;
+}
+
+.remember-forgot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #18222f;
+  font-weight: 600;
+  margin-bottom: 25px;
+}
+
+.remember-forgot label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.remember-forgot input[type="checkbox"] {
+  accent-color: #18222f;
+  cursor: pointer;
+}
+
+.remember-forgot a {
+  color: #18222f;
+  text-decoration: none;
+}
+
+.remember-forgot a:hover {
+  text-decoration: underline;
+}
+
+.btn-login {
+  width: 100%;
+  height: 45px;
+  background: #18222f;
+  border: none;
+  outline: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  transition: background 0.3s ease;
+}
+
+.btn-login:hover {
+  background: #0f172a;
+}
+
+.register-link {
+  font-size: 14px;
+  text-align: center;
+  margin-top: 25px;
+  color: #18222f;
+  font-weight: 500;
+}
+
+.register-link p a {
+  color: #18222f;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.register-link p a:hover {
+  text-decoration: underline;
+}
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  display: none; /* Mặc định ẩn */
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/* Khi có thêm class .active thì mới hiện Popup */
+.modal-overlay.active {
+  display: flex;
 }
