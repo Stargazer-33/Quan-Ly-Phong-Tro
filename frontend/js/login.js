@@ -3,7 +3,7 @@ const users = [
       email: "admin@gmail.com",
       password: "123",
       role: "Quản lý (Admin)",
-      redirectUrl: "QLKhachthue.html" 
+      redirectUrl: "dashboard.html" 
     },
     {
       email: "user@gmail.com",
