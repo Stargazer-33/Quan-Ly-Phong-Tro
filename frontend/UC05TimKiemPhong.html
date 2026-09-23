@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Tìm kiếm phòng</title>
+    <link rel="stylesheet" href="css/UC05TimKiemPhong.css">
+  
+</head>
+
+<body>
+
+    <!-- Thanh bên -->
+    <div class="sidebar">
+
+        <div class="logo">
+            🏠 QUẢN LÝ PHÒNG TRỌ
+        </div>
+
+        <div class="menu">
+            <div>📊 Tổng quan</div>
+            <div>🚪 Quản lý phòng</div>
+            <div class="active">🔍 Tìm kiếm phòng</div>
+            <div>👤 Khách thuê</div>
+            <div>📄 Hợp đồng</div>
+            <div>💰 Hóa đơn</div>
+        </div>
+
+    </div>
+
+
+    <!-- Nội dung chính -->
+    <div class="main">
+
+        <!-- Header -->
+        <div class="header">
+            <h2>TÌM KIẾM PHÒNG</h2>
+
+            <div class="user">
+                👤 Quản lý
+            </div>
+        </div>
+
+
+        <!-- Khu vực tìm kiếm -->
+        <div class="search-box">
+
+            <div class="input-group">
+                <label>Từ khóa</label>
+
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Nhập số phòng hoặc tên khách thuê..."
+                >
+            </div>
+
+
+            <div class="input-group">
+                <label>Trạng thái</label>
+
+                <select id="statusFilter">
+                    <option value="">Tất cả</option>
+                    <option value="Trống">Trống</option>
+                    <option value="Đang thuê">Đang thuê</option>
+                    <option value="Bảo trì">Bảo trì</option>
+                </select>
+            </div>
+
+
+            <div class="input-group">
+                <label>Loại phòng</label>
+
+                <select id="typeFilter">
+                    <option value="">Tất cả</option>
+                    <option value="Phòng đơn">Phòng đơn</option>
+                    <option value="Phòng đôi">Phòng đôi</option>
+                    <option value="Phòng cao cấp">Phòng cao cấp</option>
+                </select>
+            </div>
+
+
+            <button onclick="filterRooms()">
+                🔍 Tìm kiếm
+            </button>
+
+        </div>
+
+
+        <!-- Tiêu đề kết quả -->
+        <div class="result-header">
+
+            <h3>Danh sách phòng</h3>
+
+            <span id="resultCount">
+                6 phòng
+            </span>
+
+        </div>
+
+
+        <!-- Danh sách phòng -->
+        <div class="room-list" id="roomList">
+
+            <!-- Phòng 101 -->
+            <div class="room-card"
+                 data-room="101"
+                 data-tenant=""
+                 data-status="Trống"
+                 data-type="Phòng đơn">
+
+                <div class="room-icon">
+                    🚪
+                </div>
+
+                <div class="room-info">
+                    <h3>Phòng 101</h3>
+
+                    <p>Phòng đơn</p>
+
+                    <p class="price">
+                        2.500.000 VNĐ/tháng
+                    </p>
+                </div>
+
+                <div class="room-detail">
+                    <p>
+                        Khách thuê:
+                        <strong>Chưa có</strong>
+                    </p>
+
+                    <span class="status empty">
+                        Trống
+                    </span>
+                </div>
+
+            </div>
+
+
+            <!-- Phòng 102 -->
+            <div class="room-card"
+                 data-room="102"
+                 data-tenant="Nguyễn Văn An"
+                 data-status="Đang thuê"
+                 data-type="Phòng đôi">
+
+                <div class="room-icon">
+                    🚪
+                </div>
+
+                <div class="room-info">
+                    <h3>Phòng 102</h3>
+
+                    <p>Phòng đôi</p>
+
+                    <p class="price">
+                        3.500.000 VNĐ/tháng
+                    </p>
+                </div>
+
+                <div class="room-detail">
+                    <p>
+                        Khách thuê:
+                        <strong>Nguyễn Văn An</strong>
+                    </p>
+
+                    <span class="status rented">
+                        Đang thuê
+                    </span>
+                </div>
+
+            </div>
+
+
+            <!-- Phòng 103 -->
+            <div class="room-card"
+                 data-room="103"
+                 data-tenant="Trần Thị Mai"
+                 data-status="Đang thuê"
+                 data-type="Phòng đơn">
+
+                <div class="room-icon">
+                    🚪
+                </div>
+
+                <div class="room-info">
+                    <h3>Phòng 103</h3>
+
+                    <p>Phòng đơn</p>
+
+                    <p class="price">
+                        2.500.000 VNĐ/tháng
+                    </p>
+                </div>
+
+                <div class="room-detail">
+                    <p>
+                        Khách thuê:
+                        <strong>Trần Thị Mai</strong>
+                    </p>
+
+                    <span class="status rented">
+                        Đang thuê
+                    </span>
+                </div>
+
+            </div>
+
+
+            <!-- Phòng 104 -->
+            <div class="room-card"
+                 data-room="104"
+                 data-tenant=""
+                 data-status="Bảo trì"
+                 data-type="Phòng cao cấp">
+
+                <div class="room-icon">
+                    🔧
+                </div>
+
+                <div class="room-info">
+                    <h3>Phòng 104</h3>
+
+                    <p>Phòng cao cấp</p>
+
+                    <p class="price">
+                        5.000.000 VNĐ/tháng
+                    </p>
+                </div>
+
+                <div class="room-detail">
+                    <p>
+                        Khách thuê:
+                        <strong>Chưa có</strong>
+                    </p>
+
+                    <span class="status repair">
+                        Bảo trì
+                    </span>
+                </div>
+
+            </div>
+
+
+            <!-- Phòng 105 -->
+            <div class="room-card"
+                 data-room="105"
+                 data-tenant="Lê Minh Tuấn"
+                 data-status="Đang thuê"
+                 data-type="Phòng cao cấp">
+
+                <div class="room-icon">
+                    🚪
+                </div>
+
+                <div class="room-info">
+                    <h3>Phòng 105</h3>
+
+                    <p>Phòng cao cấp</p>
+
+                    <p class="price">
+                        5.000.000 VNĐ/tháng
+                    </p>
+                </div>
+
+                <div class="room-detail">
+                    <p>
+                        Khách thuê:
+                        <strong>Lê Minh Tuấn</strong>
+                    </p>
+
+                    <span class="status rented">
+                        Đang thuê
+                    </span>
+                </div>
+
+            </div>
+
+
+            <!-- Phòng 106 -->
+            <div class="room-card"
+                 data-room="106"
+                 data-tenant=""
+                 data-status="Trống"
+                 data-type="Phòng đôi">
+
+                <div class="room-icon">
+                    🚪
+                </div>
+
+                <div class="room-info">
+                    <h3>Phòng 106</h3>
+
+                    <p>Phòng đôi</p>
+
+                    <p class="price">
+                        3.500.000 VNĐ/tháng
+                    </p>
+                </div>
+
+                <div class="room-detail">
+                    <p>
+                        Khách thuê:
+                        <strong>Chưa có</strong>
+                    </p>
+
+                    <span class="status empty">
+                        Trống
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <script src="script.js"></script>
+
+</body>
+</html>
