@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>US07 - Tra cứu khách thuê</title>
+    <link rel="stylesheet" href="US07.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo"><i class="fa-solid fa-bars"></i> Quản lý phòng trọ</div>
+            <nav class="menu">
+                <ul>
+                    <li><a href="#"><i class="fa-solid fa-house"></i> Tổng quan</a></li>
+                    <li><a href="#"><i class="fa-solid fa-door-closed"></i> Phòng trọ</a></li>
+                    <li class="active"><a href="#"><i class="fa-solid fa-user"></i> Khách thuê</a></li>
+                    <li><a href="#"><i class="fa-solid fa-file-contract"></i> Hợp đồng</a></li>
+                    <li><a href="#"><i class="fa-solid fa-file-invoice-dollar"></i> Hóa đơn</a></li>
+                    <li><a href="#"><i class="fa-solid fa-gear"></i> Cài đặt</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="user-profile"><i class="fa-solid fa-circle-user"></i> Chủ trọ <i class="fa-solid fa-chevron-down"></i></div>
+            </header>
+
+            <section class="content-body">
+                <h2>Tra cứu & Lọc khách thuê</h2>
+
+                <!-- Toolbar -->
+                <div class="toolbar">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" placeholder="Tìm tên, SĐT, CCCD...">
+                    </div>
+                    <div class="filter-box">
+                        <select class="filter-select">
+                            <option>Tất cả trạng thái</option>
+                            <option>Đang ở</option>
+                            <option>Đã chuyển</option>
+                        </select>
+                        <select class="filter-select">
+                            <option>Tất cả tòa</option>
+                            <option>Tòa nhà A</option>
+                            <option>Tòa nhà B</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>STT</th><th>Mã khách</th><th>Họ tên</th><th>Giới tính</th><th>Phòng</th><th>SĐT</th><th>CCCD</th><th>Trạng thái</th><th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td><td>KT101</td><td>Nguyễn Văn A</td><td>Nam</td><td>P101</td><td>0901234567</td><td>04020100xxxx</td>
+                                <td><span class="badge badge-active">Đang ở</span></td>
+                                <td><button class="btn-icon"><i class="fa-regular fa-eye"></i></button> <button class="btn-icon"><i class="fa-regular fa-pen-to-square"></i></button></td>
+                            </tr>
+                            <tr>
+                                <td>2</td><td>KT103</td><td>Lê Hoàng C</td><td>Nam</td><td>P103</td><td>0912345678</td><td>04809500xxxx</td>
+                                <td><span class="badge badge-inactive">Đã chuyển</span></td>
+                                <td><button class="btn-icon"><i class="fa-regular fa-eye"></i></button> <button class="btn-icon"><i class="fa-regular fa-pen-to-square"></i></button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination-container">
+                    <span>Tìm thấy 2 kết quả</span>
+                    <div class="pagination">
+                        <button class="page-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                        <button class="page-btn active">1</button>
+                        <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>
