@@ -1,24 +1,4 @@
-// 1. Danh sách tài khoản mock
-const users = [
-  {
-    email: "admin@gmail.com",
-    password: "123",
-    role: "Quản trị viên",
-    redirectUrl: "Admin.html" 
-  },
-  {
-    email: "quanly@gmail.com",
-    password: "123",
-    role: "Quản lý",
-    redirectUrl: "QuanLi.html" 
-  },
-  {
-    email: "user@gmail.com",
-    password: "123",
-    role: "Khách thuê",
-    redirectUrl: "KhachThue.html" 
-  }
-];
+
 
 // 2. Lấy phần tử DOM
 const openLoginBtn = document.getElementById('openLogin');
@@ -94,4 +74,76 @@ if (loginForm) {
       }
     }
   });
+}
+if (loginForm) {
+    loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const emailVal = emailInput.value.trim();
+        const passwordVal = passwordInput.value.trim();
+
+        try {
+            const response = await fetch("http://localhost:3000/api/login", {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    email: emailVal,
+                    password: passwordVal
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+              localStorage.setItem("email", data.email);
+localStorage.setItem("role", data.role);
+                let redirectUrl = "";
+
+                if (data.role === "admin") {
+                    redirectUrl = "Admin.html";
+                } 
+                else if (data.role === "manager") {
+                    redirectUrl = "QuanLi.html";
+                } 
+                else if (data.role === "tenant") {
+                    redirectUrl = "KhachThue.html";
+                }
+
+                Swal.fire({
+                    icon: "success",
+                    title: "Đăng nhập thành công!",
+                    text: `Quyền: ${data.role}`,
+                    timer: 1200,
+                    showConfirmButton: false
+                }).then(() => {
+                    window.location.href = redirectUrl;
+                });
+
+            } else {
+
+                Swal.fire({
+                    icon: "error",
+                    title: "Đăng nhập thất bại!",
+                    text: data.message,
+                    confirmButtonColor: "#18222f"
+                });
+
+            }
+
+        } catch (error) {
+
+            console.error(error);
+
+            Swal.fire({
+                icon: "error",
+                title: "Không thể kết nối server!",
+                text: "Hãy kiểm tra backend có đang chạy không.",
+                confirmButtonColor: "#18222f"
+            });
+        }
+    });
 }
