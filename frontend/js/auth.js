@@ -1,3 +1,4 @@
+// để tránh việc user đổi link qua html của admin
 const role = localStorage.getItem("role");
 
 const currentPage = window.location.pathname;

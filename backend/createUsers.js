@@ -1,3 +1,4 @@
+// tạo tạm user do chưa code thêm tài khoản
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 require("dotenv").config();
