@@ -767,3 +767,5 @@ else if (functionName === "Chức năng 2") {
         });
 
 }
+});
+});
