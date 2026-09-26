@@ -36,16 +36,11 @@ avatarBtn.addEventListener("click", function () {
 // ĐĂNG XUẤT
 // =========================
 
-const logoutProfileBtn =
-    document.getElementById("logoutProfileBtn");
-
+const logoutProfileBtn = document.getElementById("logoutProfileBtn");
 
 logoutProfileBtn.addEventListener("click", function () {
-
-    localStorage.removeItem("loggedIn");
-
+    localStorage.removeItem("role");
     window.location.href = "index.html";
-
 });
 
 
