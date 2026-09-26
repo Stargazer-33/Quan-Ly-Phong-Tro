@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo Cáo Công Nợ - Boarding House</title>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="BCCongNo.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-house-chimney"></i>
+                </div>
+                <div class="brand-info">
+                    <h2 class="brand-title">Boarding House</h2>
+                    <span class="brand-subtitle">Chủ trọ (Admin)</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-menu">
+                <ul>
+                    <li class="menu-item">
+                        <a href="quan-ly-nhan-vien.html">
+                            <i class="fa-solid fa-chart-line"></i>
+                            <span>Quản lý nhân viên</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="cau-hinh-gia-dich-vu.html">
+                            <i class="fa-solid fa-user-gear"></i>
+                            <span>Cấu hình giá dịch vụ</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="bao-cao-doanh-thu.html">
+                            <i class="fa-solid fa-sliders"></i>
+                            <span>Báo cáo doanh thu</span>
+                        </a>
+                    </li>
+                    <li class="menu-item active">
+                        <a href="bao-cao-cong-no.html">
+                            <i class="fa-solid fa-receipt"></i>
+                            <span>Báo cáo công nợ</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="quan-ly-chi-phi.html">
+                            <i class="fa-solid fa-door-closed"></i>
+                            <span>Quản lý chi phí</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="quan-ly-phong.html">
+                            <i class="fa-solid fa-door-closed"></i>
+                            <span>Quản lý phòng</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="quan-ly-khach-thue.html">
+                            <i class="fa-solid fa-door-closed"></i>
+                            <span>Quản lý Khách thuê</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="quan-ly-hop-dong.html">
+                            <i class="fa-solid fa-door-closed"></i>
+                            <span>Quản lý hợp đồng</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="user-profile">
+                    <i class="fa-solid fa-circle-user"></i>
+                    <span>Chủ trọ (Admin)</span>
+                </div>
+            </header>
+
+            <section class="content-body">
+                <div class="page-header">
+                    <h2 class="page-title">Báo Cáo Công Nợ Khách Thụe</h2>
+                    <div class="header-actions">
+                        <select id="monthSelect" class="form-select">
+                            <option value="09-2026" selected>Tháng 09/2026</option>
+                            <option value="08-2026">Tháng 08/2026</option>
+                            <option value="07-2026">Tháng 07/2026</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="exportData()">
+                            <i class="fa-solid fa-file-export"></i> Xuất Báo Cáo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Thống kê tổng quan công nợ -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon icon-danger"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                        <div class="stat-info">
+                            <span>TỔNG NỢ CHƯA THU</span>
+                            <h3 class="text-danger">12.500.000 đ</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon icon-warning"><i class="fa-solid fa-house-circle-exclamation"></i></div>
+                        <div class="stat-info">
+                            <span>SỐ PHÒNG NỢ TIỀN</span>
+                            <h3>3 Phòng</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon icon-success"><i class="fa-solid fa-circle-check"></i></div>
+                        <div class="stat-info">
+                            <span>ĐÃ THU TRONG THÁNG</span>
+                            <h3 class="text-success">33.200.000 đ</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bảng danh sách nợ chi tiết -->
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Phòng</th>
+                                <th>Khách đại diện</th>
+                                <th>Số điện thoại</th>
+                                <th>Kỳ nợ</th>
+                                <th>Tổng tiền nợ (VNĐ)</th>
+                                <th>Hạn thanh toán</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-bold">Phòng A101</td>
+                                <td>Nguyễn Văn Hùng</td>
+                                <td>0905 111 222</td>
+                                <td>Tháng 09/2026</td>
+                                <td class="text-bold text-danger">4.500.000 đ</td>
+                                <td>05/09/2026</td>
+                                <td><span class="status-badge status-overdue">Quá hạn 21 ngày</span></td>
+                                <td>
+                                    <button class="btn-action btn-notify" title="Nhắc nợ" onclick="remindDebt('A101')">
+                                        <i class="fa-solid fa-bell"></i>
+                                    </button>
+                                    <button class="btn-action btn-pay" title="Ghi nhận thu tiền" onclick="confirmPayment('A101')">
+                                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-bold">Phòng B203</td>
+                                <td>Lê Thị Mai</td>
+                                <td>0914 333 444</td>
+                                <td>Tháng 09/2026</td>
+                                <td class="text-bold text-danger">3.800.000 đ</td>
+                                <td>10/09/2026</td>
+                                <td><span class="status-badge status-overdue">Quá hạn 16 ngày</span></td>
+                                <td>
+                                    <button class="btn-action btn-notify" title="Nhắc nợ" onclick="remindDebt('B203')">
+                                        <i class="fa-solid fa-bell"></i>
+                                    </button>
+                                    <button class="btn-action btn-pay" title="Ghi nhận thu tiền" onclick="confirmPayment('B203')">
+                                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-bold">Phòng C305</td>
+                                <td>Trần Quốc Tuấn</td>
+                                <td>0988 777 888</td>
+                                <td>Tháng 09/2026</td>
+                                <td class="text-bold text-warning">4.200.000 đ</td>
+                                <td>28/09/2026</td>
+                                <td><span class="status-badge status-pending">Chưa thanh toán</span></td>
+                                <td>
+                                    <button class="btn-action btn-notify" title="Nhắc nợ" onclick="remindDebt('C305')">
+                                        <i class="fa-solid fa-bell"></i>
+                                    </button>
+                                    <button class="btn-action btn-pay" title="Ghi nhận thu tiền" onclick="confirmPayment('C305')">
+                                        <i class="fa-solid fa-hand-holding-dollar"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="bao-cao-cong-no.js"></script>
+</body>
+</html>

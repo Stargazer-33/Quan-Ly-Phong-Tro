@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Chi Phí - Boarding House</title>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="QLChiPhi.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-house-chimney"></i>
+                </div>
+                <div class="brand-info">
+                    <h2 class="brand-title">Boarding House</h2>
+                    <span class="brand-subtitle">Chủ trọ (Admin)</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-menu">
+                <ul>
+                    <li class="menu-item">
+                        <a href="quan-ly-nhan-vien.html">
+                            <i class="fa-solid fa-chart-line"></i>
+                            <span>Quản lý nhân viên</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="cau-hinh-gia-dich-vu.html">
+                            <i class="fa-solid fa-user-gear"></i>
+                            <span>Cấu hình giá dịch vụ</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="bao-cao-doanh-thu.html">
+                            <i class="fa-solid fa-sliders"></i>
+                            <span>Báo cáo doanh thu</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="bao-cao-cong-no.html">
+                            <i class="fa-solid fa-receipt"></i>
+                            <span>Báo cáo công nợ</span>
+                        </a>
+                    </li>
+                    <li class="menu-item active">
+                        <a href="quan-ly-chi-phi.html">
+                            <i class="fa-solid fa-money-bill-transfer"></i>
+                            <span>Quản lý chi phí</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="quan-ly-phong.html">
+                            <i class="fa-solid fa-door-closed"></i>
+                            <span>Quản lý phòng</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="quan-ly-khach-thue.html">
+                            <i class="fa-solid fa-users"></i>
+                            <span>Quản lý Khách thuê</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="quan-ly-hop-dong.html">
+                            <i class="fa-solid fa-file-contract"></i>
+                            <span>Quản lý hợp đồng</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="user-profile">
+                    <i class="fa-solid fa-circle-user"></i>
+                    <span>Chủ trọ (Admin)</span>
+                </div>
+            </header>
+
+            <section class="content-body">
+                <div class="page-header">
+                    <h2 class="page-title">Quản Lý Chi Phí Vận Hành</h2>
+                    <div class="header-actions">
+                        <select id="monthFilter" class="form-select">
+                            <option value="09-2026" selected>Tháng 09/2026</option>
+                            <option value="08-2026">Tháng 08/2026</option>
+                            <option value="07-2026">Tháng 07/2026</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="openAddModal()">
+                            <i class="fa-solid fa-plus"></i> Thêm Chi Phí Mới
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Thống kê tổng quan chi phí -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon icon-expense"><i class="fa-solid fa-receipt"></i></div>
+                        <div class="stat-info">
+                            <span>TỔNG CHI PHÍ THÁNG</span>
+                            <h3 class="text-danger">15.800.000 đ</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon icon-repair"><i class="fa-solid fa-wrench"></i></div>
+                        <div class="stat-info">
+                            <span>SỬA CHỮA & BẢO TRÌ</span>
+                            <h3>6.500.000 đ</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon icon-utility"><i class="fa-solid fa-bolt"></i></div>
+                        <div class="stat-info">
+                            <span>ĐIỆN, NƯỚC & TIỆN ÍCH</span>
+                            <h3>9.300.000 đ</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bảng danh sách chi phí -->
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Mã Phiếu</th>
+                                <th>Tên Khoản Chi</th>
+                                <th>Danh Mục</th>
+                                <th>Số Tiền (VNĐ)</th>
+                                <th>Ngày Chi</th>
+                                <th>Người Chi</th>
+                                <th>Ghi Chú</th>
+                                <th>Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-bold">CP001</td>
+                                <td>Sửa máy giặt tầng 2</td>
+                                <td><span class="category-badge cat-repair">Bảo trì / Sửa chữa</span></td>
+                                <td class="text-bold text-danger">1.200.000 đ</td>
+                                <td>22/09/2026</td>
+                                <td>Nguyễn Văn Quản Lý</td>
+                                <td>Thay bo mạch máy giặt Toshiba</td>
+                                <td>
+                                    <button class="btn-action btn-edit" title="Sửa"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button class="btn-action btn-delete" title="Xóa"><i class="fa-solid fa-trash-can"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-bold">CP002</td>
+                                <td>Thanh toán tiền điện tổng</td>
+                                <td><span class="category-badge cat-utility">Điện / Nước</span></td>
+                                <td class="text-bold text-danger">6.800.000 đ</td>
+                                <td>15/09/2026</td>
+                                <td>Chủ trọ (Admin)</td>
+                                <td>Hóa đơn điện công ty EVN</td>
+                                <td>
+                                    <button class="btn-action btn-edit" title="Sửa"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button class="btn-action btn-delete" title="Xóa"><i class="fa-solid fa-trash-can"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-bold">CP003</td>
+                                <td>Cước Internet Viettel tháng 9</td>
+                                <td><span class="category-badge cat-service">Mạng / Tiện ích</span></td>
+                                <td class="text-bold text-danger">2.500.000 đ</td>
+                                <td>10/09/2026</td>
+                                <td>Chủ trọ (Admin)</td>
+                                <td>Gói cước doanh nghiệp 200Mbps</td>
+                                <td>
+                                    <button class="btn-action btn-edit" title="Sửa"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button class="btn-action btn-delete" title="Xóa"><i class="fa-solid fa-trash-can"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>
