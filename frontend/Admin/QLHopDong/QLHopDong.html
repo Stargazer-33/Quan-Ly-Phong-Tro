@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Hợp Đồng - Boarding House</title>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="QLHopDong.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-house-chimney"></i>
+                </div>
+                <div class="brand-info">
+                    <h2 class="brand-title">Boarding House</h2>
+                    <span class="brand-subtitle">Chủ trọ (Admin)</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-menu">
+                <ul>
+                    <li class="menu-item">
+                        <a href="quan-ly-nhan-vien.html">
+                            <i class="fa-solid fa-chart-line"></i>
+                            <span>Quản lý nhân viên</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="cau-hinh-gia-dich-vu.html">
+                            <i class="fa-solid fa-user-gear"></i>
+                            <span>Cấu hình giá dịch vụ</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="bao-cao-doanh-thu.html">
+                            <i class="fa-solid fa-sliders"></i>
+                            <span>Báo cáo doanh thu</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="bao-cao-cong-no.html">
+                            <i class="fa-solid fa-receipt"></i>
+                            <span>Báo cáo công nợ</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="quan-ly-chi-phi.html">
+                            <i class="fa-solid fa-money-bill-transfer"></i>
+                            <span>Quản lý chi phí</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="quan-ly-phong.html">
+                            <i class="fa-solid fa-door-closed"></i>
+                            <span>Quản lý phòng</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="quan-ly-khach-thue.html">
+                            <i class="fa-solid fa-users"></i>
+                            <span>Quản lý Khách thuê</span>
+                        </a>
+                    </li>
+                    <li class="menu-item active">
+                        <a href="quan-ly-hop-dong.html">
+                            <i class="fa-solid fa-file-contract"></i>
+                            <span>Quản lý hợp đồng</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="user-profile">
+                    <i class="fa-solid fa-circle-user"></i>
+                    <span>Chủ trọ (Admin)</span>
+                </div>
+            </header>
+
+            <section class="content-body">
+                <div class="page-header">
+                    <h2 class="page-title">Quản Lý Danh Sách Hợp Đồng</h2>
+                    <div class="header-actions">
+                        <select id="statusFilter" class="form-select">
+                            <option value="all" selected>Tất cả trạng thái</option>
+                            <option value="active">Đang hiệu lực</option>
+                            <option value="expiring">Sắp hết hạn</option>
+                            <option value="expired">Đã thanh lý / Hết hạn</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="openAddContractModal()">
+                            <i class="fa-solid fa-file-circle-plus"></i> Tạo Hợp Đồng Mới
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Thống kê tổng quan hợp đồng -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon icon-total"><i class="fa-solid fa-file-signature"></i></div>
+                        <div class="stat-info">
+                            <span>TỔNG HỢP ĐỒNG</span>
+                            <h3 class="text-primary">15 Hợp đồng</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon icon-active"><i class="fa-solid fa-file-circle-check"></i></div>
+                        <div class="stat-info">
+                            <span>ĐANG HIỆU LỰC</span>
+                            <h3 class="text-success">12 Hợp đồng</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon icon-expiring"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                        <div class="stat-info">
+                            <span>SẮP HẾT HẠN (&lt; 30 NGÀY)</span>
+                            <h3 class="text-warning">2 Hợp đồng</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bảng danh sách hợp đồng -->
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Mã HĐ</th>
+                                <th>Phòng</th>
+                                <th>Khách Đại Diện</th>
+                                <th>Tiền Đặt Cọc (VNĐ)</th>
+                                <th>Ngày Bắt Đầu</th>
+                                <th>Ngày Kết Thúc</th>
+                                <th>Trạng Thái</th>
+                                <th>Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-bold">HD001</td>
+                                <td class="text-bold text-primary">Phòng A101</td>
+                                <td>Nguyễn Văn Hùng</td>
+                                <td>3.500.000 đ</td>
+                                <td>01/01/2026</td>
+                                <td>31/12/2026</td>
+                                <td><span class="status-badge status-active">Đang hiệu lực</span></td>
+                                <td>
+                                    <button class="btn-action btn-view" title="Xem chi tiết"><i class="fa-solid fa-eye"></i></button>
+                                    <button class="btn-action btn-edit" title="Gia hạn / Sửa"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button class="btn-action btn-delete" title="Thanh lý"><i class="fa-solid fa-file-circle-xmark"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-bold">HD002</td>
+                                <td class="text-bold text-primary">Phòng B201</td>
+                                <td>Lê Thị Mai</td>
+                                <td>3.800.000 đ</td>
+                                <td>15/10/2025</td>
+                                <td>15/10/2026</td>
+                                <td><span class="status-badge status-expiring">Sắp hết hạn</span></td>
+                                <td>
+                                    <button class="btn-action btn-view" title="Xem chi tiết"><i class="fa-solid fa-eye"></i></button>
+                                    <button class="btn-action btn-edit" title="Gia hạn / Sửa"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button class="btn-action btn-delete" title="Thanh lý"><i class="fa-solid fa-file-circle-xmark"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-bold">HD003</td>
+                                <td class="text-bold text-primary">Phòng C302</td>
+                                <td>Trần Văn Nam</td>
+                                <td>3.000.000 đ</td>
+                                <td>01/06/2025</td>
+                                <td>01/06/2026</td>
+                                <td><span class="status-badge status-expired">Đã thanh lý</span></td>
+                                <td>
+                                    <button class="btn-action btn-view" title="Xem chi tiết"><i class="fa-solid fa-eye"></i></button>
+                                    <button class="btn-action btn-edit" title="Gia hạn / Sửa"><i class="fa-solid fa-pen-to-square"></i></button>
+                                    <button class="btn-action btn-delete" title="Xóa"><i class="fa-solid fa-trash-can"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="QuanLyHopDong.js"></script>
+</body>
+</html>

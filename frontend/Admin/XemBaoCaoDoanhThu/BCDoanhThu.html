@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo Cáo Doanh Thu - Boarding House</title>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="BCDoanhThu.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon">
+                    <i class="fa-solid fa-house-chimney"></i>
+                </div>
+                <div class="brand-info">
+                    <h2 class="brand-title">Boarding House</h2>
+                    <span class="brand-subtitle">Chủ trọ (Admin)</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-menu">
+                <ul>
+                    <li class="menu-item">
+                        <a href="quan-ly-nhan-vien.html">
+                            <i class="fa-solid fa-chart-line"></i>
+                            <span>Quản lý nhân viên</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="cau-hinh-gia-dich-vu.html">
+                            <i class="fa-solid fa-user-gear"></i>
+                            <span>Cấu hình giá dịch vụ</span>
+                        </a>
+                    </li>
+                    <li class="menu-item active">
+                        <a href="bao-cao-doanh-thu.html">
+                            <i class="fa-solid fa-sliders"></i>
+                            <span>Báo cáo doanh thu</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="bao-cao-cong-no.html">
+                            <i class="fa-solid fa-receipt"></i>
+                            <span>Báo cáo công nợ</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="quan-ly-chi-phi.html">
+                            <i class="fa-solid fa-door-closed"></i>
+                            <span>Quản lý chi phí</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="quan-ly-phong.html">
+                            <i class="fa-solid fa-door-closed"></i>
+                            <span>Quản lý phòng</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="quan-ly-khach-thue.html">
+                            <i class="fa-solid fa-door-closed"></i>
+                            <span>Quản lý Khách thuê</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="quan-ly-hop-dong.html">
+                            <i class="fa-solid fa-door-closed"></i>
+                            <span>Quản lý hợp đồng</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="user-profile">
+                    <i class="fa-solid fa-circle-user"></i>
+                    <span>Chủ trọ (Admin)</span>
+                </div>
+            </header>
+
+            <section class="content-body">
+                <div class="page-header">
+                    <h2 class="page-title">Báo Cáo Doanh Thu</h2>
+                    <div class="header-actions">
+                        <select id="yearSelect" class="form-select">
+                            <option value="2026" selected>Năm 2026</option>
+                            <option value="2025">Năm 2025</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="exportData()">
+                            <i class="fa-solid fa-file-export"></i> Xuất file Excel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Thống kê tổng quan -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon icon-total"><i class="fa-solid fa-wallet"></i></div>
+                        <div class="stat-info">
+                            <span>TỔNG DOANH THU THỰC THU</span>
+                            <h3 class="text-primary">420.500.000 đ</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon icon-room"><i class="fa-solid fa-house-user"></i></div>
+                        <div class="stat-info">
+                            <span>TIỀN PHÒNG</span>
+                            <h3>320.000.000 đ</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon icon-service"><i class="fa-solid fa-bolt"></i></div>
+                        <div class="stat-info">
+                            <span>TIỀN DỊCH VỤ</span>
+                            <h3>100.500.000 đ</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Biểu đồ Doanh Thu -->
+                <div class="chart-card">
+                    <h3 class="card-title"><i class="fa-solid fa-chart-column"></i> Biểu Đồ Thống Kê Doanh Thu 6 Tháng Gần Nhất</h3>
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Bảng chi tiết doanh thu -->
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Tháng</th>
+                                <th>Tiền phòng (VNĐ)</th>
+                                <th>Tiền dịch vụ (VNĐ)</th>
+                                <th>Khác / Phụ phí (VNĐ)</th>
+                                <th>Tổng doanh thu (VNĐ)</th>
+                                <th>Trạng thái thu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-bold">Tháng 09/2026</td>
+                                <td>35.000.000 đ</td>
+                                <td>8.200.000 đ</td>
+                                <td>2.500.000 đ</td>
+                                <td class="text-bold text-primary">45.700.000 đ</td>
+                                <td><span class="status-active">Đã hoàn tất</span></td>
+                            </tr>
+                            <tr>
+                                <td class="text-bold">Tháng 08/2026</td>
+                                <td>35.000.000 đ</td>
+                                <td>8.500.000 đ</td>
+                                <td>2.400.000 đ</td>
+                                <td class="text-bold text-primary">45.900.000 đ</td>
+                                <td><span class="status-active">Đã hoàn tất</span></td>
+                            </tr>
+                            <tr>
+                                <td class="text-bold">Tháng 07/2026</td>
+                                <td>34.000.000 đ</td>
+                                <td>7.900.000 đ</td>
+                                <td>2.200.000 đ</td>
+                                <td class="text-bold text-primary">44.100.000 đ</td>
+                                <td><span class="status-active">Đã hoàn tất</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
