@@ -1,12 +1,10 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="vi">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Quản lý nhà trọ</title>
-
+    <title>Quản lý nhà trọ - Khách Thuê</title>
     <link rel="stylesheet" href="css/KhachThue.css">
 </head>
 
@@ -14,52 +12,39 @@
 
     <div class="dashboard">
 
-        <!-- SIDEBAR -->
+        <!-- SIDEBAR --> 
         <aside class="sidebar">
 
             <!-- LOGO -->
             <div class="sidebar-logo">
-
-                <img src="../img/logo.png" alt="Logo">
-
+                <img src="../img/logo.png" alt="Logo" onerror="this.src='https://via.placeholder.com/40'">
                 <div>
                     <strong>'s boarding house</strong>
                     <span>Khách thuê</span>
                 </div>
-
             </div>
-
 
             <!-- MENU -->
             <nav class="sidebar-nav">
-
-                <a href="#" class="nav-item active"
-                    data-function="Chức năng 1">
-                    Chức năng 1
+                <a href="#" class="nav-item active" data-function="Báo cáo sự cố">
+                    Báo cáo sự cố
                 </a>
-
-                <a href="#" class="nav-item"
-                    data-function="Chức năng 2">
-                    Chức năng 2
+                <a href="#" class="nav-item" data-function="Xem hóa đơn">
+                    Xem hóa đơn
                 </a>
-
-                <a href="#" class="nav-item"
-                    data-function="Chức năng 3">
-                    Chức năng 3
+                <a href="#" class="nav-item" data-function="Hợp đồng thuê">
+                    Hợp đồng thuê
                 </a>
-
-                <a href="#" class="nav-item"
-                    data-function="Chức năng 4">
-                    Chức năng 4
+                <a href="#" class="nav-item" data-function="Thông báo">
+                    Thông báo
                 </a>
-
-                <a href="#" class="nav-item"
-                    data-function="Chức năng 5">
-                    Chức năng 5
+                <a href="#" class="nav-item" data-function="Thành viên ở cùng">
+                    Thành viên ở cùng
                 </a>
-
+                <a href="#" class="nav-item" data-function="Đổi mật khẩu">
+                    Đổi mật khẩu
+                </a>
             </nav>
-
 
             <!-- SIDEBAR BOTTOM -->
             <div class="sidebar-bottom">
@@ -68,141 +53,49 @@
 
         </aside>
 
-
-        <!-- MAIN -->
+        <!-- MAIN CONTENT -->
         <main class="content">
 
             <!-- TOP BAR -->
             <div class="top-bar">
-
                 <div class="content-header">
-
-                    <h1>Chức năng 1 cho khách</h1>
-
+                    <h1 id="pageTitle">Báo cáo sự cố</h1>
                     <p>Quản lý nhà trọ</p>
-
                 </div>
-
 
                 <!-- PROFILE -->
                 <div class="profile">
-
-                    <button class="avatar-btn" id="avatarBtn">
-                        A
-                    </button>
-
+                    <button class="avatar-btn" id="avatarBtn">A</button>
 
                     <!-- PROFILE POPUP -->
-                    <div class="profile-menu" id="profileMenu">
-
+                    <div class="profile-menu" id="profileMenu" style="display: none;">
                         <div class="profile-info">
-
-                            <div class="big-avatar">
-                                A
-                            </div>
-
+                            <div class="big-avatar">A</div>
                             <div>
-                                <strong>User</strong>
-                                <p>user@gmail.com</p>
+                                <strong>Khách Thuê</strong>
+                                <p>khachthue@gmail.com</p>
                             </div>
-
                         </div>
-
 
                         <hr>
 
-
-                        <button id="profileBtn">
-                            Thông tin cá nhân
-                        </button>
-
-                        <button id="changePasswordBtn">
-                            Đổi mật khẩu
-                        </button>
-
-                        <button id="logoutProfileBtn">
-                            Đăng xuất
-                        </button>
-
-                    </div>
-
+                        <button id="profileBtn">Thông tin cá nhân</button>
+                        <button id="changePasswordBtn">Đổi mật khẩu</button>
+                        <button id="logoutProfileBtn" style="color: #dc2626;">Đăng xuất</button>
+</div>
                 </div>
-
             </div>
 
-
-            <!-- CONTENT -->
-            <div class="main-content">
-
-                <div class="card-header">
-
-                    <div>
-
-                        <h2>Chức năng 1</h2>
-
-                        <p>Thông tin tổng quan</p>
-
-                    </div>
-
-
-                    <span class="status">
-                        Đang hoạt động
-                    </span>
-
-                </div>
-
-
-                <div class="card-body">
-
-                    <div class="info-card">
-
-                        <span class="info-title">
-                            Tổng số phòng
-                        </span>
-
-                        <strong>
-                            20
-                        </strong>
-
-                    </div>
-
-
-                    <div class="info-card">
-
-                        <span class="info-title">
-                            Đang cho thuê
-                        </span>
-
-                        <strong>
-                            15
-                        </strong>
-
-                    </div>
-
-
-                    <div class="info-card">
-
-                        <span class="info-title">
-                            Phòng trống
-                        </span>
-
-                        <strong>
-                            5
-                        </strong>
-
-                    </div>
-
-                </div>
-
+            <!-- MAIN CONTENT AREA -->
+            <div class="main-content" id="mainContent">
+                <!-- Nội dung được js/KhachThue.js render động -->
             </div>
 
         </main>
 
     </div>
 
-
     <script src="js/KhachThue.js"></script>
-<script src="js/auth.js"></script>
 </body>
 
 </html>
