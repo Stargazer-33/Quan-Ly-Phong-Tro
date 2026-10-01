@@ -1,28 +1,24 @@
-// để tránh việc user đổi link qua html của admin
-const role = localStorage.getItem("role");
+window.requireCurrentProfile = async function (allowedRoles = []) {
+  const { data: { user }, error } = await window.supabaseClient.auth.getUser();
+  if (error || !user) {
+    window.location.replace("index.html");
+    return null;
+  }
 
-const currentPage = window.location.pathname;
+  const { data: profile, error: profileError } = await window.supabaseClient
+    .from("profiles")
+    .select("id, full_name, role")
+    .eq("id", user.id)
+    .single();
+  if (profileError || !profile || (allowedRoles.length && !allowedRoles.includes(profile.role))) {
+    await window.supabaseClient.auth.signOut();
+    window.location.replace("index.html");
+    return null;
+  }
+  return { user, profile };
+};
 
-if (currentPage.includes("Admin.html")) {
-
-    if (role !== "admin") {
-        window.location.href = "index.html";
-    }
-
-}
-
-else if (currentPage.includes("QuanLi.html")) {
-
-    if (role !== "manager") {
-        window.location.href = "index.html";
-    }
-
-}
-
-else if (currentPage.includes("KhachThue.html")) {
-
-    if (role !== "tenant") {
-        window.location.href = "index.html";
-    }
-
-}
+window.signOutAndReturnHome = async function () {
+  await window.supabaseClient.auth.signOut();
+  window.location.replace("index.html");
+};

@@ -99,6 +99,8 @@ let data = loadData();
 let activeView = "overview";
 let editingRecord = null;
 let editingEntity = "";
+let supabaseUser = null;
+let supabasePropertyId = null;
 
 const menuItems = document.querySelectorAll(".nav-item");
 const pageTitle = document.getElementById("pageTitle");
@@ -133,11 +135,35 @@ function loadData() {
     return JSON.parse(JSON.stringify(mockData));
 }
 
-function saveData() {
+async function saveData() {
+    if (!supabasePropertyId || !supabaseUser) return;
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        await window.rentalRepository.save(supabasePropertyId, supabaseUser.id, data);
     } catch (error) {
-        alert("Không thể lưu dữ liệu trên trình duyệt này.");
+        console.error("Supabase save failed:", error);
+        alert(`Không lưu được dữ liệu lên Supabase: ${error.message}`);
+        throw error;
+    }
+}
+
+async function initializeSupabaseData() {
+    try {
+        const auth = await window.requireCurrentProfile(["owner"]);
+        if (!auth) return;
+        supabaseUser = auth.user;
+        document.getElementById("ownerEmail").textContent = auth.user.email || "";
+        const property = await window.rentalRepository.propertyForUser(auth.user, "owner");
+        supabasePropertyId = property.id;
+        data = await window.rentalRepository.load(supabasePropertyId);
+        if (!(await window.rentalRepository.isInitialized(supabasePropertyId))) {
+            data = loadData();
+            await saveData();
+            await window.rentalRepository.markInitialized(supabasePropertyId);
+        }
+        renderView("overview", false);
+    } catch (error) {
+        console.error("Supabase initialization failed:", error);
+        document.getElementById("sectionBody").innerHTML = `<div class="inner-panel"><h3>Chưa kết nối được dữ liệu</h3><p>${escapeHtml(error.message || "Kiểm tra migration, vai trò tài khoản và RLS.")}</p><p>Hãy chạy migration Supabase và gán tài khoản của bạn vai trò owner trước khi mở trang này.</p></div>`;
     }
 }
 
@@ -195,6 +221,8 @@ function table(headers, rows) {
 
 function actions(id, options = ["edit", "delete"]) {
     const labels = { edit: "Sửa", delete: "Xóa", pay: "Ghi nhận thu", toggle: "Khóa / Mở" };
+    if (["staff", "tenants"].includes(activeView) && list(activeView).find((item) => item.id === id)?.authUserId) options = ["resend", ...options];
+    labels.resend = "Gửi lại email";
     return `<div class="row-actions">${options.map((action) => `<button class="table-action" data-action="${action}" data-id="${escapeHtml(id)}">${labels[action]}</button>`).join("")}</div>`;
 }
 
@@ -221,7 +249,7 @@ function renderOverview() {
             ${summaryCard("Đã thu tháng này", money(revenue), "₫", `Công nợ hiện tại ${money(debt)}`)}
         </div>
         <div class="overview-columns">
-            <section class="inner-panel"><div class="inner-panel-title"><div><h3>Hóa đơn gần đây</h3><p>Mock data theo tháng đang chọn</p></div><button class="text-button" data-view="invoices">Xem tất cả</button></div>
+            <section class="inner-panel"><div class="inner-panel-title"><div><h3>Hóa đơn gần đây</h3><p>Dữ liệu hóa đơn đã đồng bộ</p></div><button class="text-button" data-view="invoices">Xem tất cả</button></div>
                 ${table(["KỲ", "PHÒNG", "KHÁCH THUÊ", "TỔNG TIỀN", "TRẠNG THÁI"], list("invoices").slice(0, 5).map((invoice) => row([escapeHtml(invoice.period), escapeHtml(invoice.roomCode), escapeHtml(invoice.tenantName), money(invoice.total), statusBadge(getInvoiceStatus(invoice))])))}</section>
             <section class="inner-panel"><div class="inner-panel-title"><div><h3>Truy cập nhanh</h3><p>Các việc chủ trọ thường làm</p></div></div><div class="quick-view-list">${quickViews.map(([view, title, description]) => `<button class="quick-view" data-view="${view}"><span class="quick-view-mark">${title.slice(0, 1)}</span><span><strong>${title}</strong><small>${description}</small></span><b>›</b></button>`).join("")}</div></section>
         </div>`;
@@ -235,15 +263,15 @@ const entitySettings = {
     staff: { key: "staff", idPrefix: "NV", title: "Thêm nhân viên", fields: [
         ["name", "Họ và tên", "text", true], ["phone", "Số điện thoại", "tel"], ["email", "Email", "email"],
         ["position", "Chức vụ", "select", true, [["Quản lý cơ sở", "Quản lý cơ sở"], ["Kế toán", "Kế toán"], ["Kỹ thuật / Bảo trì", "Kỹ thuật / Bảo trì"]]], ["area", "Khu vực phụ trách", "text"]
-    ], columns: ["HỌ VÀ TÊN", "SỐ ĐIỆN THOẠI", "EMAIL", "CHỨC VỤ", "KHU VỰC", "TRẠNG THÁI", "THAO TÁC"] },
+    ], columns: ["HỌ VÀ TÊN", "SỐ ĐIỆN THOẠI", "EMAIL / TÀI KHOẢN", "CHỨC VỤ", "KHU VỰC", "TRẠNG THÁI", "THAO TÁC"] },
     rooms: { key: "rooms", idPrefix: "P", title: "Thêm phòng", fields: [
         ["code", "Mã phòng", "text", true], ["name", "Tên phòng", "text", true], ["floor", "Tầng", "text"], ["price", "Giá thuê / tháng", "number", true],
         ["area", "Diện tích (m²)", "number"], ["status", "Trạng thái", "select", true, [["available", "Còn trống"], ["rented", "Đang thuê"], ["maintenance", "Bảo trì"]]]
     ], columns: ["MÃ PHÒNG", "TÊN PHÒNG", "TẦNG", "GIÁ THUÊ", "DIỆN TÍCH", "KHÁCH ĐẠI DIỆN", "TRẠNG THÁI", "THAO TÁC"] },
     tenants: { key: "tenants", idPrefix: "KH", title: "Thêm khách thuê", fields: [
-        ["name", "Họ và tên", "text", true], ["phone", "Số điện thoại", "tel", true], ["identity", "CCCD / CMND", "text"], ["roomCode", "Phòng", "select", false, "rooms"],
+        ["name", "Họ và tên", "text", true], ["phone", "Số điện thoại", "tel", true], ["identity", "CCCD / CMND", "text"], ["email", "Email đăng nhập (để mời tài khoản)", "email"], ["roomCode", "Phòng", "select", false, "rooms"],
         ["status", "Trạng thái", "select", true, [["active", "Đang thuê"], ["inactive", "Đã rời đi"]]]
-    ], columns: ["HỌ VÀ TÊN", "SỐ ĐIỆN THOẠI", "CCCD / CMND", "PHÒNG", "TRẠNG THÁI", "THAO TÁC"] },
+    ], columns: ["HỌ VÀ TÊN", "SỐ ĐIỆN THOẠI", "CCCD / CMND", "EMAIL / TÀI KHOẢN", "PHÒNG", "TRẠNG THÁI", "THAO TÁC"] },
     contracts: { key: "contracts", idPrefix: "HD", title: "Tạo hợp đồng", fields: [
         ["code", "Mã hợp đồng", "text", true], ["roomCode", "Phòng", "select", true, "rooms"], ["tenantName", "Khách thuê", "select", true, "tenants"], ["deposit", "Tiền đặt cọc", "number"],
         ["start", "Ngày bắt đầu", "date", true], ["end", "Ngày kết thúc", "date", true], ["status", "Trạng thái", "select", true, [["active", "Đang hiệu lực"], ["terminated", "Đã kết thúc"]]]
@@ -260,7 +288,7 @@ const entitySettings = {
 
 function renderStaff(search = "") {
     const rows = list("staff").filter((item) => `${item.name} ${item.email} ${item.phone}`.toLowerCase().includes(search)).map((item) => row([
-        `<strong>${escapeHtml(item.name)}</strong>`, escapeHtml(item.phone), escapeHtml(item.email), escapeHtml(item.position), escapeHtml(item.area), statusBadge(item.status), actions(item.id, ["edit", "toggle", "delete"])
+        `<strong>${escapeHtml(item.name)}</strong>`, escapeHtml(item.phone), `${escapeHtml(item.email)}<br><small>${item.authUserId ? "Đã cấp tài khoản" : "Chưa cấp tài khoản"}</small>`, escapeHtml(item.position), escapeHtml(item.area), statusBadge(item.status), actions(item.id, ["edit", "toggle", "delete"])
     ]));
     renderTableView("staff", rows, { search: true, addLabel: "Thêm nhân viên" });
 }
@@ -275,8 +303,8 @@ function renderRooms(search = "", status = "all") {
 }
 
 function renderTenants(search = "") {
-    const rows = list("tenants").filter((item) => `${item.name} ${item.phone} ${item.identity} ${item.roomCode}`.toLowerCase().includes(search)).map((item) => row([
-        `<strong>${escapeHtml(item.name)}</strong>`, escapeHtml(item.phone), escapeHtml(item.identity), escapeHtml(item.roomCode || "Chưa xếp phòng"), statusBadge(item.status, { active: ["Đang thuê", "badge-blue"], inactive: ["Đã rời đi", "badge-gray"] }), actions(item.id)
+    const rows = list("tenants").filter((item) => `${item.name} ${item.phone} ${item.identity} ${item.email} ${item.roomCode}`.toLowerCase().includes(search)).map((item) => row([
+        `<strong>${escapeHtml(item.name)}</strong>`, escapeHtml(item.phone), escapeHtml(item.identity), `${escapeHtml(item.email || "—")}<br><small>${item.authUserId ? "Đã cấp tài khoản" : "Chưa cấp tài khoản"}</small>`, escapeHtml(item.roomCode || "Chưa xếp phòng"), statusBadge(item.status, { active: ["Đang thuê", "badge-blue"], inactive: ["Đã rời đi", "badge-gray"] }), actions(item.id)
     ]));
     renderTableView("tenants", rows, { search: true, addLabel: "Thêm khách thuê" });
 }
@@ -405,7 +433,7 @@ function selectOptions(source) {
     return [];
 }
 
-function saveRecord(event) {
+async function saveRecord(event) {
     event.preventDefault();
     const settings = entitySettings[editingEntity];
     const values = Object.fromEntries(new FormData(event.currentTarget).entries());
@@ -436,11 +464,33 @@ function saveRecord(event) {
         values.code = editingRecord?.code || makeId("HDN");
     }
 
+    let savedRecord = editingRecord;
     if (editingRecord) Object.assign(editingRecord, values);
-    else list(settings.key).push({ id: makeId(settings.idPrefix), ...(editingEntity === "staff" ? { status: "active" } : {}), ...values });
+    else {
+        savedRecord = { id: makeId(settings.idPrefix), ...(editingEntity === "staff" ? { status: "active" } : {}), ...values };
+        list(settings.key).push(savedRecord);
+        editingRecord = savedRecord;
+    }
 
     if (editingEntity === "contracts") syncRoomStatus();
-    saveData();
+    try {
+        await saveData();
+    } catch (error) {
+        showFormError(`Không lưu được hồ sơ lên Supabase: ${error.message}`);
+        return;
+    }
+    const inviteEntity = editingEntity === "staff" ? "staff_members" : editingEntity === "tenants" ? "tenants" : null;
+    if (inviteEntity && savedRecord.email && !savedRecord.authUserId) {
+        try {
+            const invited = await window.rentalRepository.inviteMember(
+                supabasePropertyId, inviteEntity, savedRecord.id, savedRecord.email, savedRecord.name
+            );
+            savedRecord.authUserId = invited.user_id;
+        } catch (error) {
+            showFormError(`Đã lưu hồ sơ nhưng chưa gửi được lời mời. Cần triển khai Edge Function provision-member: ${error.message}`);
+            return;
+        }
+    }
     recordDialog.close();
     renderView(activeView);
 }
@@ -457,28 +507,44 @@ function showFormError(message) {
     document.getElementById("dialogError").textContent = message;
 }
 
-function deleteRecord(entity, id) {
+async function deleteRecord(entity, id) {
     const settings = entitySettings[entity];
     const record = list(settings.key).find((item) => item.id === id);
     if (!record) return;
-    if (entity === "rooms" && (list("contracts").some((item) => item.roomCode === record.code) || list("invoices").some((item) => item.roomCode === record.code))) return alert("Phòng đã có hợp đồng hoặc hóa đơn, không thể xóa.");
-    if (entity === "tenants" && (list("contracts").some((item) => item.tenantName === record.name) || list("invoices").some((item) => item.tenantName === record.name))) return alert("Khách thuê đã có hợp đồng hoặc hóa đơn, không thể xóa hồ sơ lịch sử.");
+    if (entity === "rooms" && (list("tenants").some((item) => item.roomCode === record.code) || list("contracts").some((item) => item.roomCode === record.code) || list("invoices").some((item) => item.roomCode === record.code) || list("readings").some((item) => item.roomCode === record.code) || list("incidents").some((item) => item.roomCode === record.code))) return alert("Phòng đang có dữ liệu liên quan, không thể xóa.");
+    if (entity === "tenants" && (list("contracts").some((item) => item.tenantName === record.name) || list("invoices").some((item) => item.tenantName === record.name) || list("incidents").some((item) => item.tenantId === record.id))) return alert("Khách thuê đã có dữ liệu lịch sử, không thể xóa hồ sơ.");
     if (!confirm(`Bạn có chắc muốn xóa ${record.name || record.code || "dữ liệu này"}?`)) return;
+    try {
+        if (entity === "staff" && record.authUserId) await window.rentalRepository.setManagerEnabled(supabasePropertyId, id, false);
+        await window.rentalRepository.remove(supabasePropertyId, settings.key, id);
+    } catch (error) {
+        return alert(`Không thể xóa dữ liệu: ${error.message}`);
+    }
     data[settings.key] = list(settings.key).filter((item) => item.id !== id);
     if (entity === "contracts") syncRoomStatus();
-    saveData();
+    try {
+        await saveData();
+    } catch (error) {
+        return alert(`Đã xóa mục nhưng không đồng bộ được thay đổi liên quan: ${error.message}`);
+    }
     renderView(activeView);
 }
 
-function toggleStaff(id) {
+async function toggleStaff(id) {
     const person = list("staff").find((item) => item.id === id);
     if (!person) return;
-    person.status = person.status === "active" ? "inactive" : "active";
-    saveData();
+    const enabled = person.status !== "active";
+    try {
+        if (person.authUserId) await window.rentalRepository.setManagerEnabled(supabasePropertyId, id, enabled);
+        person.status = enabled ? "active" : "inactive";
+        await saveData();
+    } catch (error) {
+        return alert(`Không cập nhật được trạng thái tài khoản: ${error.message}`);
+    }
     renderView("staff");
 }
 
-function addPayment(id) {
+async function addPayment(id) {
     const invoice = list("invoices").find((item) => item.id === id);
     if (!invoice) return;
     const due = dueAmount(invoice);
@@ -487,8 +553,14 @@ function addPayment(id) {
     const amount = Number(input.replace(/[^\d]/g, ""));
     if (!amount || amount < 1) return alert("Số tiền thu phải lớn hơn 0.");
     if (amount > due) return alert("Số tiền nhập lớn hơn khoản công nợ còn lại.");
-    invoice.paid = Number(invoice.paid || 0) + amount;
-    saveData();
+    try {
+        await window.rentalRepository.addPayment(supabasePropertyId, {
+            id: makeId("PAY"), invoiceId: invoice.id, amount, method: "cash", note: "Thu tại quầy"
+        });
+        invoice.paid = Number(invoice.paid || 0) + amount;
+    } catch (error) {
+        return alert(`Không ghi nhận được thanh toán: ${error.message}`);
+    }
     renderView(activeView);
 }
 
@@ -498,12 +570,27 @@ function handleAction(action, entity, id) {
     if (action === "delete") return deleteRecord(entity, id);
     if (action === "toggle") return toggleStaff(id);
     if (action === "pay") return addPayment(id);
+    if (action === "resend") return resendMemberInvite(entity, id);
+}
+
+async function resendMemberInvite(entity, id) {
+    const staff = entity === "staff";
+    const record = list(staff ? "staff" : "tenants").find((item) => item.id === id);
+    if (!record?.authUserId || !record.email) return alert("Hồ sơ chưa liên kết tài khoản hoặc thiếu email.");
+    if (!confirm(`Gửi lại email thiết lập tài khoản đến ${record.email}?`)) return;
+    try {
+        const result = await window.rentalRepository.resendMemberInvite(
+            supabasePropertyId, staff ? "staff_members" : "tenants", id
+        );
+        const emailType = result.mode === "recovery" ? "email đặt lại mật khẩu" : "email lời mời";
+        alert(`Đã gửi ${emailType} đến ${record.email}. Nhắc người nhận kiểm tra cả thư rác.`);
+    } catch (error) {
+        alert(`Không gửi lại được email: ${error.message}`);
+    }
 }
 
 function logout() {
-    localStorage.removeItem("role");
-    localStorage.removeItem("email");
-    window.location.href = "index.html";
+    window.signOutAndReturnHome();
 }
 
 // Giữ cách điều hướng menu data-function của khung Admin ban đầu.
@@ -542,8 +629,7 @@ document.addEventListener("click", (event) => {
     if (!event.target.closest(".profile")) profileMenu.classList.remove("active");
 });
 document.getElementById("logoutProfileBtn").addEventListener("click", logout);
-document.getElementById("ownerEmail").textContent = localStorage.getItem("email") || "admin@gmail.com";
-document.getElementById("profileBtn").addEventListener("click", () => alert(`Tài khoản chủ trọ: ${localStorage.getItem("email") || "admin@gmail.com"}`));
+document.getElementById("profileBtn").addEventListener("click", () => alert(`Tài khoản chủ trọ: ${supabaseUser?.email || ""}`));
 document.getElementById("changePasswordBtn").addEventListener("click", () => alert("Đổi mật khẩu: chức năng sẽ kết nối API tài khoản ở bước tiếp theo."));
 
-renderView("overview", false);
+initializeSupabaseData();
