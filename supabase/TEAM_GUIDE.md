@@ -1,45 +1,16 @@
-# Tài liệu giao cho ChatGPT hướng dẫn làm trang Quản lý và Khách thuê
+# Hướng dẫn làm hai trang Quản lý và Khách thuê
 
-## Đọc phần này trước
+## 0. Chuẩn bị chung
 
-Bạn là ChatGPT hỗ trợ một thành viên trong nhóm làm bài quản lý phòng trọ. Thành viên đó **không dùng Codex** và cần được chỉ dẫn bằng VS Code, trình duyệt và Supabase Dashboard.
+1. Pull code mới nhất từ GitHub.
+2. Mở thư mục dự án trong VS Code.
+3. Mở `frontend/index.html` bằng **Live Server** để chạy website. Đăng nhập bằng tài khoản được chủ trọ mời.
+4. Đọc các file giao diện đang có trước khi sửa để giữ lại bố cục chung:
+   - Quản lý: `frontend/QuanLi.html`, `frontend/js/QuanLi.js`, `frontend/css/QuanLi.css`
+   - Khách thuê: `frontend/KhachThue.html`, `frontend/js/KhachThue.js`, `frontend/css/KhachThue.css`
+5. Backend dùng chung đã có. Không tạo lại bảng, không chạy migration lần nữa, không đổi `supabaseClient.js`.
 
-Hãy hướng dẫn bằng tiếng Việt, câu ngắn, từng bước rõ ràng. Nếu thành viên chưa biết thao tác ở đâu, chỉ đúng nút/menu trong VS Code hoặc Supabase. Khi có lỗi, xin nguyên văn thông báo hoặc ảnh đã che thông tin riêng tư rồi xử lý lỗi đó trước khi giao bước tiếp.
-
-## 1. Bối cảnh dự án
-
-- Thư mục dự án: `D:\QLPT\Quan-Ly-Phong-Tro`.
-- Frontend là các file HTML, CSS và JavaScript thuần trong `frontend/`.
-- Dự án đã nối với Supabase. Cấu hình client nằm trong `frontend/js/supabaseClient.js`.
-- Migration tạo bảng và RLS đã chạy thành công trên Supabase. **Không hướng dẫn chạy lại migration.**
-- Chủ trọ/Admin là phần của thành viên khác; phần này đã có trang và chức năng riêng.
-- Tài khoản Quản lý và Khách thuê được Chủ trọ tạo/mời từ Admin. Thành viên không tự đăng ký role và không cần tạo bảng mới.
-- Khi đăng nhập, `frontend/js/login.js` chuyển role `manager` sang `QuanLi.html`, role `tenant` sang `KhachThue.html`.
-
-## 2. Phạm vi thành viên cần làm
-
-Chia việc vào các file sẵn có:
-
-| Phần | HTML | JavaScript | CSS |
-|---|---|---|---|
-| Quản lý | `frontend/QuanLi.html` | `frontend/js/QuanLi.js` | `frontend/css/QuanLi.css` |
-| Khách thuê | `frontend/KhachThue.html` | `frontend/js/KhachThue.js` | `frontend/css/KhachThue.css` |
-
-Giữ lại bố cục/sườn hiện có trong các file. Hãy bổ sung chức năng vào đúng trang, không tạo thêm dashboard thay thế và không sửa `Admin.html`, `Admin.js`, `supabaseClient.js`, migration hoặc Edge Function nếu không có yêu cầu cụ thể.
-
-## 3. Cách chạy và đăng nhập
-
-1. Trong VS Code, mở thư mục dự án.
-2. Cài extension **Live Server** nếu máy chưa có.
-3. Nhấp phải `frontend/index.html` → **Open with Live Server**.
-4. Đăng nhập bằng email/mật khẩu mà Chủ trọ đã mời.
-5. Tài khoản Manager sẽ vào `QuanLi.html`; tài khoản Tenant sẽ vào `KhachThue.html`.
-
-Không cần cài Codex, chạy SQL migration hay cài npm package chỉ để làm hai trang frontend. Nếu trang không tải được dữ liệu, mở DevTools bằng `F12` → **Console**, sao chép lỗi để ChatGPT hướng dẫn xử lý.
-
-## 4. Quy tắc chung cho cả hai trang
-
-Mở HTML và kiểm tra phần cuối trước. Nếu đã có các script này thì sửa đúng thứ tự, đừng thêm bản trùng. Trang Quản lý dùng file JS của Quản lý; trang Khách thuê đổi dòng cuối thành `js/KhachThue.js`.
+Cả hai trang cần nạp các script sau ở cuối HTML, theo đúng thứ tự. Trang Quản lý dùng `js/QuanLi.js`; trang Khách thuê đổi script cuối thành `js/KhachThue.js`.
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -49,48 +20,76 @@ Mở HTML và kiểm tra phần cuối trước. Nếu đã có các script này
 <script src="js/QuanLi.js"></script>
 ```
 
-Mỗi trang phải kiểm tra quyền ngay khi khởi động:
+Các hàm dùng chung:
+
+- `window.requireCurrentProfile(["manager"])` hoặc `window.requireCurrentProfile(["tenant"])`: chặn người dùng sai quyền.
+- `window.rentalRepository`: đọc, lưu và xóa dữ liệu nghiệp vụ.
+- `window.signOutAndReturnHome()`: đăng xuất.
+
+Không lấy role từ `localStorage`. Không đưa service-role key, secret key hoặc mật khẩu SMTP vào HTML/JS.
+
+---
+
+## 1. Trang Quản lý
+
+### Mục tiêu
+
+Làm trang cho nhân viên quản lý đã được chủ trọ mời. Trang này tập trung vào phòng, khách thuê, hợp đồng, chỉ số điện nước, hóa đơn, thanh toán và sự cố. Quản lý không mời tài khoản khác.
+
+### Bước 1: Kiểm tra quyền và lấy cơ sở
+
+Trong `frontend/js/QuanLi.js`, khi trang khởi động:
 
 ```js
-const auth = await window.requireCurrentProfile(["manager"]);
-if (!auth) return;
+(async function startManagerPage() {
+  const auth = await window.requireCurrentProfile(["manager"]);
+  if (!auth) return;
+
+  try {
+    const property = await window.rentalRepository.propertyForUser(auth.user, "manager");
+    const data = await window.rentalRepository.load(property.id);
+    renderManagerPage(data);
+  } catch (error) {
+    console.error(error);
+    alert(`Không tải được dữ liệu: ${error.message}`);
+  }
+})();
 ```
 
-Trang Khách thuê dùng `requireCurrentProfile(["tenant"])`. Đăng xuất bằng:
+`propertyForUser` trả về cơ sở đã được chủ trọ phân công. Không tự lấy một `property_id` từ ô nhập, URL hoặc `localStorage`.
 
-```js
-window.signOutAndReturnHome();
-```
+### Bước 2: Dùng dữ liệu đã tải
 
-Không dùng `localStorage` để lưu role hoặc quyết định ai được đọc dữ liệu. Không đưa service-role/secret key, mật khẩu email hoặc SMTP vào frontend. Publishable key đã được cấu hình sẵn ở `supabaseClient.js`.
+`rentalRepository.load(property.id)` trả dữ liệu theo dạng JavaScript:
 
-## 5. Yêu cầu chức năng: Quản lý
+- `rooms`: phòng (`code`, `name`, `floor`, `price`, `area`, `status`)
+- `tenants`: khách (`name`, `phone`, `email`, `roomCode`, `status`)
+- `contracts`: hợp đồng (`code`, `roomCode`, `tenantName`, `start`, `end`, `deposit`, `status`)
+- `services`: giá dịch vụ
+- `readings`: chỉ số điện nước (`roomCode`, `period`, chỉ số trước/sau)
+- `invoices`: hóa đơn, có `total`, `paid`, `dueDate`
+- `payments`: các lần thanh toán
+- `incidents`: báo sự cố
 
-Đây là nhân viên được Chủ trọ phân công vào một cơ sở. Các chức năng nên làm:
+Dùng các mảng này để render bảng và biểu mẫu trong trang hiện có.
 
-1. **Tổng quan:** số phòng, phòng đang thuê/còn trống, hóa đơn chưa thu đủ, sự cố mới.
-2. **Phòng:** xem danh sách, tìm kiếm/lọc; thêm, sửa trạng thái hoặc thông tin phòng nếu sườn trang có chức năng này.
-3. **Khách thuê và hợp đồng:** xem hồ sơ, phòng đang ở, thời hạn hợp đồng; thêm/sửa hồ sơ nghiệp vụ theo sườn trang.
-4. **Điện nước và hóa đơn:** nhập chỉ số theo kỳ, xem hóa đơn và số còn phải thu.
-5. **Thanh toán:** ghi nhận từng khoản khách đã trả; không tự sửa trường `paid` của hóa đơn.
-6. **Sự cố:** xem sự cố khách gửi và cập nhật trạng thái `new`, `processing`, `resolved`.
+### Bước 3: Lưu và xóa
 
-Khi vào trang, lấy đúng cơ sở được phân công và tải dữ liệu bằng repository:
-
-```js
-const property = await window.rentalRepository.propertyForUser(auth.user, "manager");
-const data = await window.rentalRepository.load(property.id);
-```
-
-`data` có các danh sách `rooms`, `tenants`, `staff`, `contracts`, `services`, `readings`, `invoices`, `payments`, `expenses`, `incidents`. Dữ liệu này đã được chuyển thành tên thuộc tính giao diện dễ dùng, ví dụ `room.price`, `tenant.name`, `invoice.total`.
-
-Để lưu thêm/sửa các danh sách hỗ trợ, cập nhật `data` rồi gọi:
+Sau khi thêm hoặc sửa một hồ sơ trong `data`, lưu bằng:
 
 ```js
 await window.rentalRepository.save(property.id, auth.user.id, data);
 ```
 
-`save` không ghi mảng `payments`. Ghi từng khoản thu riêng bằng:
+Xóa một hồ sơ bằng:
+
+```js
+await window.rentalRepository.remove(property.id, "rooms", room.id);
+```
+
+Thay `"rooms"` bằng loại cần xóa, ví dụ `"tenants"`, `"contracts"`, `"readings"` hoặc `"incidents"`. Trước khi xóa, kiểm tra hồ sơ có hợp đồng/hóa đơn liên quan không.
+
+Thanh toán phải lưu thành một giao dịch riêng, không sửa trực tiếp `invoice.paid`:
 
 ```js
 await window.rentalRepository.addPayment(property.id, {
@@ -102,32 +101,89 @@ await window.rentalRepository.addPayment(property.id, {
 });
 ```
 
-Khi xóa, gọi `window.rentalRepository.remove(property.id, entity, id)`. Không xóa phòng/khách nếu đã có hợp đồng, hóa đơn hoặc lịch sử liên quan.
+Hóa đơn sẽ cộng tổng từ bảng `payments` khi tải lại.
 
-## 6. Yêu cầu chức năng: Khách thuê
+### Bước 4: Đăng xuất
 
-Khách chỉ xem dữ liệu của chính mình. Tối thiểu cần có:
-
-1. **Thông tin thuê:** tên, phòng, trạng thái thuê, hợp đồng và ngày hết hạn.
-2. **Hóa đơn:** kỳ hóa đơn, tổng tiền, đã trả/còn nợ, hạn thanh toán.
-3. **Lịch sử:** các khoản thanh toán và chỉ số điện nước của phòng mình.
-4. **Báo sự cố:** gửi tiêu đề, loại và mô tả; xem các sự cố do chính mình gửi.
-5. **Đăng xuất.**
-
-Lấy hồ sơ khách đang đăng nhập bằng Auth user ID, không hỏi khách nhập ID/email để chọn hồ sơ:
+Gắn nút đăng xuất hiện có vào:
 
 ```js
-const { data: tenant, error } = await window.supabaseClient
-  .from("tenants")
-  .select("id, property_id, full_name, room_id, status")
-  .eq("auth_user_id", auth.user.id)
-  .single();
-if (error) throw error;
+window.signOutAndReturnHome();
 ```
 
-Sau khi có `tenant`, tải hóa đơn/hợp đồng theo `tenant.property_id` và `tenant.id`. Tải chỉ số theo `tenant.property_id` và `tenant.room_id`. Supabase RLS cũng chặn dữ liệu người khác; bộ lọc phía trình duyệt không thay thế RLS.
+---
 
-Khi gửi sự cố, lấy `property_id`, `room_id`, `tenant_id` từ hồ sơ vừa tìm được và dùng trạng thái mới `new`:
+## 2. Trang Khách thuê
+
+### Mục tiêu
+
+Khách chỉ xem thông tin của chính mình: phòng, hợp đồng, chỉ số, hóa đơn và thanh toán. Khách có thể gửi báo sự cố cho phòng mình.
+
+### Bước 1: Kiểm tra quyền
+
+Trong `frontend/js/KhachThue.js`:
+
+```js
+(async function startTenantPage() {
+  const auth = await window.requireCurrentProfile(["tenant"]);
+  if (!auth) return;
+
+  try {
+    await loadTenantPage(auth);
+  } catch (error) {
+    console.error(error);
+    alert(`Không tải được dữ liệu: ${error.message}`);
+  }
+})();
+```
+
+### Bước 2: Lấy hồ sơ của khách đang đăng nhập
+
+Không cho khách chọn hồ sơ bằng tên/email/ID nhập trên trang. Tìm hồ sơ theo `auth.user.id`:
+
+```js
+async function loadTenantPage(auth) {
+  const { data: tenant, error } = await window.supabaseClient
+    .from("tenants")
+    .select("id, property_id, full_name, room_id, status")
+    .eq("auth_user_id", auth.user.id)
+    .single();
+  if (error) throw error;
+
+  const propertyId = tenant.property_id;
+  const [contractsResult, invoicesResult, paymentsResult, readingsResult, incidentsResult] = await Promise.all([
+    window.supabaseClient.from("rental_contracts").select("*")
+      .eq("property_id", propertyId).eq("tenant_id", tenant.id),
+    window.supabaseClient.from("invoices").select("*")
+      .eq("property_id", propertyId).eq("tenant_id", tenant.id),
+    window.supabaseClient.from("payments").select("*")
+      .eq("property_id", propertyId),
+    window.supabaseClient.from("utility_readings").select("*")
+      .eq("property_id", propertyId).eq("room_id", tenant.room_id),
+    window.supabaseClient.from("incidents").select("*")
+      .eq("property_id", propertyId).eq("tenant_id", tenant.id)
+  ]);
+
+  for (const result of [contractsResult, invoicesResult, paymentsResult, readingsResult, incidentsResult]) {
+    if (result.error) throw result.error;
+  }
+
+  renderTenantPage({
+    tenant,
+    contracts: contractsResult.data,
+    invoices: invoicesResult.data,
+    payments: paymentsResult.data,
+    readings: readingsResult.data,
+    incidents: incidentsResult.data
+  });
+}
+```
+
+RLS của Supabase cũng giới hạn dữ liệu theo người dùng. Vẫn lọc bằng `property_id` và `tenant_id` trong truy vấn để code dễ hiểu; không dựa vào filter phía trình duyệt làm lớp bảo mật duy nhất.
+
+### Bước 3: Gửi báo sự cố
+
+Lấy tiêu đề/mô tả từ form, nhưng lấy `tenant`, `property_id`, `room_id` từ hồ sơ đã xác thực ở bước 2:
 
 ```js
 const { error } = await window.supabaseClient.from("incidents").insert({
@@ -146,39 +202,38 @@ const { error } = await window.supabaseClient.from("incidents").insert({
 if (error) throw error;
 ```
 
-Không để khách tự gửi báo cáo cho phòng/người khác hoặc tự đổi sự cố sang `processing`/`resolved`.
+Không cho khách đặt `status` thành `processing`/`resolved`, hoặc gửi sự cố cho phòng/khách khác. RLS chỉ cho phép gửi sự cố mới gắn với hồ sơ của chính họ.
 
-## 7. Các bảng Supabase
+### Bước 4: Đăng xuất
 
-| Bảng | Ý nghĩa |
+Gắn nút đăng xuất hiện có vào:
+
+```js
+window.signOutAndReturnHome();
+```
+
+---
+
+## 3. Bảng Supabase thường dùng
+
+| Bảng | Dùng ở trang nào |
 |---|---|
-| `profiles` | Role của tài khoản đăng nhập |
-| `property_members` | Cơ sở được giao cho Manager; Admin quản lý bảng này |
-| `rooms` | Phòng |
-| `tenants` | Hồ sơ khách thuê, có `auth_user_id` nối với tài khoản Auth |
-| `staff_members` | Hồ sơ nhân viên, có `auth_user_id` nối với tài khoản Auth |
-| `rental_contracts` | Hợp đồng |
+| `profiles` | Vai trò tài khoản; thường đọc qua `requireCurrentProfile` |
+| `property_members` | Phân công quản lý vào cơ sở; Admin quản lý bảng này |
+| `rooms`, `tenants`, `staff_members` | Phòng và hồ sơ người dùng |
+| `rental_contracts` | Hợp đồng thuê |
 | `utility_readings` | Chỉ số điện nước |
-| `invoices` | Hóa đơn |
-| `payments` | Từng giao dịch thu tiền |
-| `incidents` | Sự cố khách báo, quản lý tiếp nhận |
-| `service_prices`, `expenses` | Giá dịch vụ và chi phí |
+| `invoices`, `payments` | Hóa đơn và các lần thu tiền |
+| `incidents` | Khách gửi sự cố, quản lý theo dõi/cập nhật |
+| `service_prices`, `expenses` | Giá dịch vụ và chi phí; chủ yếu dành cho quản lý/chủ trọ |
 
-## 8. Cách ChatGPT nên hướng dẫn thành viên
+## 4. Kiểm tra trước khi báo hoàn thành
 
-1. Hỏi họ đang làm trang nào và mở file nào; đừng bắt đầu bằng thay đổi backend.
-2. Chỉ từng thao tác VS Code rõ ràng: file cần mở, đoạn cần tìm, mã cần dán, cách lưu.
-3. Làm từng phần nhỏ: nạp script và chặn role trước, sau đó tải dữ liệu, rồi mới làm từng chức năng/giao diện.
-4. Nếu có lỗi, yêu cầu họ gửi nguyên văn lỗi từ trang hoặc Console. Không đoán lỗi và không yêu cầu họ chia sẻ mật khẩu/key.
-5. Chỉ hướng dẫn Supabase Dashboard nếu thật sự cần; bảng/RLS hiện đã tạo nên không bảo họ chạy SQL lại.
-6. Nhắc họ chỉ sửa các file thuộc trang được giao, rồi commit/push branch của mình để nhóm dễ ghép code.
+- Tài khoản Manager vào được trang Quản lý; tài khoản Tenant vào được trang Khách thuê.
+- Đăng nhập sai role thì không vào được trang tương ứng.
+- Manager thao tác được các dữ liệu trong cơ sở được giao.
+- Tenant chỉ thấy dữ liệu của mình và gửi được sự cố cho phòng của mình.
+- Đăng xuất xong quay về trang chủ.
+- Mở DevTools Console kiểm tra không còn lỗi JavaScript.
 
-## 9. Kiểm tra hoàn thành
-
-- Đăng nhập Manager vào đúng trang Quản lý; đăng nhập Tenant vào đúng trang Khách thuê.
-- Tài khoản sai role bị chuyển khỏi trang.
-- Manager chỉ thao tác được cơ sở mình được giao.
-- Tenant chỉ xem dữ liệu của mình; thử sửa filter/API không xem được dữ liệu khách khác.
-- Khách gửi được sự cố; Manager nhìn thấy và cập nhật được trạng thái.
-- Đăng xuất đưa người dùng về trang chủ.
-- Mở `F12` → **Console**, không còn lỗi JavaScript.
+Nếu Supabase trả lỗi, ghi lại nguyên văn lỗi. Không khắc phục bằng cách tắt RLS hoặc đưa service-role key vào trình duyệt.
