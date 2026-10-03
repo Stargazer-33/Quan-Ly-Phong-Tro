@@ -83,28 +83,28 @@ menuItems.forEach(function (item) {
         pageDescription.textContent = "Hệ thống quản lý nhà trọ An Bình";
 
         switch (functionName) {
-            case "UC03 - Quản lý phòng":
+            case "Quản lý phòng":
                 renderQuanLyPhong();
                 break;
-            case "UC04 - Quản lý khách thuê":
+            case "Quản lý khách thuê":
                 renderQuanLyKhachThue();
                 break;
-            case "UC05 - Quản lý hợp đồng":
+            case "Quản lý hợp đồng":
                 renderQuanLyHopDong();
                 break;
-            case "UC07 - Ghi chỉ số điện/nước":
+            case "Ghi chỉ số điện/nước":
                 renderGhiChiSo();
                 break;
-            case "UC08 - Tạo hóa đơn":
+            case "Tạo hóa đơn":
                 renderTaoHoaDon();
                 break;
-            case "UC09 - Gửi link hóa đơn":
+            case "Gửi link hóa đơn":
                 renderGuiLinkHoaDon();
                 break;
-            case "UC11 - Cập nhật thanh toán":
+            case "Cập nhật thanh toán":
                 renderCapNhatThanhToan();
                 break;
-            case "UC12 - Quản lý sự cố":
+            case "Quản lý sự cố":
                 renderQuanLySuCo();
                 break;
             default:
