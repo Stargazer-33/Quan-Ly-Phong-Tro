@@ -71,7 +71,7 @@
         email: x.email || "", roomCode: roomsById.get(x.room_id)?.code || "", status: x.status, authUserId: x.auth_user_id })),
       contracts: loaded.rental_contracts.map((x) => ({ id: x.id, code: x.code,
         roomCode: roomsById.get(x.room_id)?.code || "", tenantName: tenantsById.get(x.tenant_id)?.full_name || x.tenant_name || "",
-        deposit: Number(x.deposit), start: x.start_date, end: x.end_date, status: x.status })),
+        deposit: Number(x.deposit), start: x.start_date, end: x.end_date, status: x.status, ...(x.terms || {}) })),
       services: loaded.service_prices.map((x) => ({ id: x.id, name: x.name, unit: x.unit, price: Number(x.price) })),
       readings: loaded.utility_readings.map((x) => ({ id: x.id, roomCode: roomsById.get(x.room_id)?.code || "",
         period: x.period, electricityPrevious: Number(x.electricity_previous), electricityCurrent: Number(x.electricity_current),
@@ -104,7 +104,8 @@
         phone: x.phone || "", email: x.email || "", position: x.position || "", area: x.area || "", status: x.status || "active" })),
       rental_contracts: (data.contracts || []).map((x) => ({ property_id: propertyId, id: x.id, code: x.code || x.id,
         room_id: roomsByCode.get(x.roomCode)?.id, tenant_id: tenantsByName.get(x.tenantName)?.id || null,
-        tenant_name: x.tenantName || "", deposit: Number(x.deposit || 0), start_date: x.start, end_date: x.end, status: x.status || "active" })),
+        tenant_name: x.tenantName || "", deposit: Number(x.deposit || 0), start_date: x.start, end_date: x.end, status: x.status || "active",
+        terms: x.terms || Object.fromEntries(Object.entries(x).filter(([key]) => !["id", "code", "roomCode", "tenantName", "deposit", "start", "end", "status"].includes(key))) })),
       service_prices: (data.services || []).map((x) => ({ property_id: propertyId, id: x.id, name: x.name,
         unit: x.unit, price: Number(x.price || 0) })),
       utility_readings: (data.readings || []).filter((x) => roomsByCode.has(x.roomCode)).map((x) => ({

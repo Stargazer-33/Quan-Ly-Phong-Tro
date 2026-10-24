@@ -117,7 +117,7 @@ const viewInfo = {
     staff: ["Quản lý nhân viên", "Tài khoản và nhân sự vận hành", "Danh sách nhân viên", "Thêm, tìm kiếm và cập nhật nhân viên"],
     rooms: ["Quản lý phòng", "Danh sách phòng và trạng thái cho thuê", "Danh sách phòng trọ", "Cập nhật giá thuê, diện tích và tình trạng phòng"],
     tenants: ["Quản lý khách thuê", "Hồ sơ và thông tin liên hệ người thuê", "Danh sách khách thuê", "Tra cứu người thuê và phòng đang ở"],
-    contracts: ["Quản lý hợp đồng", "Thời hạn thuê và tiền đặt cọc", "Danh sách hợp đồng", "Theo dõi hợp đồng còn hiệu lực và sắp hết hạn"],
+    contracts: ["Quản lý hợp đồng", "Thông tin các bên, điều khoản thuê và bàn giao", "Danh sách hợp đồng", "Lập, xem/in và theo dõi hợp đồng thuê phòng"],
     services: ["Cấu hình giá dịch vụ", "Đơn giá điện, nước và dịch vụ", "Bảng giá dịch vụ", "Cập nhật đơn giá áp dụng cho hóa đơn mới"],
     invoices: ["Hóa đơn và thanh toán", "Lập hóa đơn và ghi nhận các lần thu", "Danh sách hóa đơn", "Theo dõi hóa đơn theo kỳ và trạng thái thanh toán"],
     revenue: ["Báo cáo doanh thu", "Doanh thu đã lập, đã thu và chi phí", "Tổng hợp doanh thu", "Số liệu được tổng hợp từ mock data hóa đơn và phiếu chi"],
@@ -220,7 +220,7 @@ function table(headers, rows) {
 }
 
 function actions(id, options = ["edit", "delete"]) {
-    const labels = { edit: "Sửa", delete: "Xóa", pay: "Ghi nhận thu", toggle: "Khóa / Mở" };
+    const labels = { view: "Xem / In", edit: "Sửa", delete: "Xóa", pay: "Ghi nhận thu", toggle: "Khóa / Mở", terminate: "Thanh lý" };
     if (["staff", "tenants"].includes(activeView) && list(activeView).find((item) => item.id === id)?.authUserId) options = ["resend", ...options];
     labels.resend = "Gửi lại email";
     return `<div class="row-actions">${options.map((action) => `<button class="table-action" data-action="${action}" data-id="${escapeHtml(id)}">${labels[action]}</button>`).join("")}</div>`;
@@ -272,9 +272,31 @@ const entitySettings = {
         ["name", "Họ và tên", "text", true], ["phone", "Số điện thoại", "tel", true], ["identity", "CCCD / CMND", "text"], ["email", "Email đăng nhập (để mời tài khoản)", "email"], ["roomCode", "Phòng", "select", false, "rooms"],
         ["status", "Trạng thái", "select", true, [["active", "Đang thuê"], ["inactive", "Đã rời đi"]]]
     ], columns: ["HỌ VÀ TÊN", "SỐ ĐIỆN THOẠI", "CCCD / CMND", "EMAIL / TÀI KHOẢN", "PHÒNG", "TRẠNG THÁI", "THAO TÁC"] },
-    contracts: { key: "contracts", idPrefix: "HD", title: "Tạo hợp đồng", fields: [
-        ["code", "Mã hợp đồng", "text", true], ["roomCode", "Phòng", "select", true, "rooms"], ["tenantName", "Khách thuê", "select", true, "tenants"], ["deposit", "Tiền đặt cọc", "number"],
-        ["start", "Ngày bắt đầu", "date", true], ["end", "Ngày kết thúc", "date", true], ["status", "Trạng thái", "select", true, [["active", "Đang hiệu lực"], ["terminated", "Đã kết thúc"]]]
+    contracts: { key: "contracts", idPrefix: "HD", title: "Tạo hợp đồng thuê", fields: [
+        ["__section", "1. Thông tin hợp đồng và tài sản thuê"],
+        ["code", "Mã hợp đồng", "text", true], ["propertyAddress", "Địa chỉ nhà trọ", "text", true],
+        ["roomCode", "Phòng thuê", "select", true, "rooms"], ["purpose", "Mục đích thuê", "text", true],
+        ["__section", "2. Bên cho thuê (Bên A)"],
+        ["landlordName", "Họ và tên chủ nhà", "text", true], ["landlordIdentity", "CCCD/CMND", "text", true],
+        ["landlordAddress", "Địa chỉ thường trú", "text", true], ["landlordPhone", "Số điện thoại", "tel", true],
+        ["__section", "3. Bên thuê đại diện (Bên B)"],
+        ["tenantName", "Họ và tên người thuê", "select", true, "tenants"], ["tenantIdentity", "CCCD/CMND", "text", true],
+        ["tenantPhone", "Số điện thoại", "tel", true], ["tenantAddress", "Địa chỉ thường trú", "text"],
+        ["occupants", "Người ở cùng (họ tên, CCCD)", "textarea"], ["maxOccupants", "Số người ở tối đa", "number"],
+        ["__section", "4. Thời hạn, tiền thuê và thanh toán"],
+        ["start", "Ngày bắt đầu thuê", "date", true], ["end", "Ngày kết thúc thuê", "date", true],
+        ["rent", "Tiền thuê mỗi tháng (VNĐ)", "number", true], ["deposit", "Tiền đặt cọc (VNĐ)", "number", true],
+        ["paymentDueDay", "Hạn trả tiền hàng tháng (ngày)", "number", true], ["paymentMethod", "Phương thức thanh toán", "select", true, [["cash", "Tiền mặt"], ["bank_transfer", "Chuyển khoản"], ["other", "Khác"]]],
+        ["bankDetails", "Thông tin tài khoản nhận tiền (nếu có)", "text"],
+        ["electricityRate", "Giá điện (VNĐ/kWh)", "number"], ["waterRate", "Giá nước (VNĐ/m³)", "number"],
+        ["serviceFee", "Phí dịch vụ cố định/tháng (VNĐ)", "number"], ["__section", "5. Bàn giao, quyền nghĩa vụ và chấm dứt"],
+        ["handoverDate", "Ngày bàn giao phòng", "date"], ["handoverInventory", "Hiện trạng phòng, thiết bị, chỉ số điện nước, số chìa khóa", "textarea"],
+        ["landlordObligations", "Quyền và nghĩa vụ bên cho thuê", "textarea"], ["tenantObligations", "Quyền và nghĩa vụ bên thuê / nội quy", "textarea"],
+        ["noticePeriodDays", "Số ngày báo trước khi chấm dứt", "number", true], ["depositReturnDays", "Số ngày hoàn trả tiền cọc sau đối chiếu", "number", true],
+        ["terminationTerms", "Điều kiện chấm dứt sớm, khấu trừ cọc và xử lý công nợ", "textarea", true], ["latePaymentTerms", "Thỏa thuận khi thanh toán trễ hạn", "textarea"],
+        ["disputeTerms", "Thỏa thuận giải quyết tranh chấp", "textarea"], ["additionalTerms", "Thỏa thuận bổ sung", "textarea"],
+        ["signedOn", "Ngày ký hợp đồng", "date", true],
+        ["status", "Trạng thái", "select", true, [["active", "Đang hiệu lực"], ["terminated", "Đã kết thúc"]]]
     ], columns: ["MÃ HỢP ĐỒNG", "PHÒNG", "KHÁCH THUÊ", "TIỀN CỌC", "BẮT ĐẦU", "KẾT THÚC", "TRẠNG THÁI", "THAO TÁC"] },
     services: { key: "services", idPrefix: "DV", title: "Thêm dịch vụ", fields: [["name", "Tên dịch vụ", "text", true], ["unit", "Đơn vị tính", "text", true], ["price", "Đơn giá (VNĐ)", "number", true]], columns: ["TÊN DỊCH VỤ", "ĐƠN VỊ TÍNH", "ĐƠN GIÁ", "THAO TÁC"] },
     invoices: { key: "invoices", idPrefix: "HDN", title: "Tạo hóa đơn", fields: [
@@ -311,7 +333,7 @@ function renderTenants(search = "") {
 
 function renderContracts(search = "", status = "all") {
     const rows = list("contracts").filter((item) => `${item.code} ${item.roomCode} ${item.tenantName}`.toLowerCase().includes(search) && (status === "all" || getContractStatus(item) === status)).map((item) => row([
-        `<strong>${escapeHtml(item.code)}</strong>`, escapeHtml(item.roomCode), escapeHtml(item.tenantName), money(item.deposit), formatDate(item.start), formatDate(item.end), statusBadge(getContractStatus(item), { active: ["Đang hiệu lực", "badge-green"], terminated: ["Đã kết thúc", "badge-gray"] }), actions(item.id)
+        `<strong>${escapeHtml(item.code)}</strong>`, escapeHtml(item.roomCode), escapeHtml(item.tenantName), money(item.deposit), formatDate(item.start), formatDate(item.end), statusBadge(getContractStatus(item), { active: ["Đang hiệu lực", "badge-green"], expiring: ["Sắp hết hạn", "badge-orange"], expired: ["Đã hết hạn", "badge-red"], terminated: ["Đã kết thúc", "badge-gray"] }), actions(item.id, ["view", "edit", ...(item.status === "active" ? ["terminate"] : [])])
     ]));
     renderTableView("contracts", rows, { search: true, status: [["active", "Đang hiệu lực"], ["expiring", "Sắp hết hạn"], ["expired", "Đã hết hạn"], ["terminated", "Đã kết thúc"]], addLabel: "Tạo hợp đồng" });
 }
@@ -407,16 +429,32 @@ function openForm(entity, id = "") {
     document.getElementById("dialogError").textContent = "";
     const host = document.getElementById("dialogFields");
     host.innerHTML = settings.fields.map(([name, label, type, required = false, choices]) => {
+        if (name === "__section") return `<h3 class="dialog-section-title">${escapeHtml(label)}</h3>`;
         const current = editingRecord?.[name] ?? defaultFieldValue(name, type);
         let control;
         if (type === "select") {
             const options = Array.isArray(choices) ? choices : selectOptions(choices);
             control = `<select name="${name}" ${required ? "required" : ""}>${options.map(([value, optionLabel]) => `<option value="${escapeHtml(value)}" ${String(value) === String(current) ? "selected" : ""}>${escapeHtml(optionLabel)}</option>`).join("")}</select>`;
+        } else if (type === "textarea") {
+            control = `<textarea name="${name}" rows="3" ${required ? "required" : ""}>${escapeHtml(current)}</textarea>`;
         } else {
             control = `<input name="${name}" type="${type}" value="${escapeHtml(current)}" ${required ? "required" : ""} ${type === "number" ? 'min="0" step="1"' : ""}>`;
         }
-        return `<label class="form-field"><span>${escapeHtml(label)}${required ? " *" : ""}</span>${control}</label>`;
+        return `<label class="form-field ${type === "textarea" ? "form-field-wide" : ""}"><span>${escapeHtml(label)}${required ? " *" : ""}</span>${control}</label>`;
     }).join("");
+    if (entity === "contracts") {
+        const roomSelect = host.querySelector('[name="roomCode"]');
+        const rentInput = host.querySelector('[name="rent"]');
+        const tenantSelect = host.querySelector('[name="tenantName"]');
+        const tenantIdentity = host.querySelector('[name="tenantIdentity"]');
+        const tenantPhone = host.querySelector('[name="tenantPhone"]');
+        roomSelect.addEventListener("change", () => { const room = list("rooms").find((item) => item.code === roomSelect.value); if (room && !editingRecord) rentInput.value = room.price; });
+        tenantSelect.addEventListener("change", () => { const tenant = list("tenants").find((item) => item.name === tenantSelect.value); if (tenant) { tenantIdentity.value = tenant.identity || ""; tenantPhone.value = tenant.phone || ""; } });
+        if (!editingRecord) {
+            const defaults = { purpose: "Để ở", maxOccupants: "2", paymentDueDay: "5", electricityRate: String(list("services").find((item) => item.name.toLowerCase().includes("điện"))?.price || ""), waterRate: String(list("services").find((item) => item.name.toLowerCase().includes("nước"))?.price || ""), serviceFee: String(list("services").filter((item) => item.unit.toLowerCase().includes("phòng")).reduce((sum, item) => sum + Number(item.price || 0), 0)), paymentMethod: "bank_transfer", noticePeriodDays: "30", depositReturnDays: "7", landlordObligations: "Bàn giao phòng đúng thỏa thuận; bảo đảm quyền sử dụng hợp pháp; thông báo rõ các khoản thu và phối hợp xử lý sự cố thuộc trách nhiệm của bên cho thuê.", tenantObligations: "Thanh toán đúng hạn; sử dụng phòng đúng mục đích; giữ gìn tài sản; không tự ý sửa chữa, chuyển nhượng hoặc cho thuê lại; tuân thủ nội quy và quy định về an ninh, vệ sinh, phòng cháy chữa cháy.", terminationTerms: "Hai bên báo trước theo thời hạn đã thỏa thuận. Khi kết thúc thuê, đối chiếu tiền thuê, điện nước, dịch vụ, tài sản và công nợ; hoàn trả phần tiền đặt cọc còn lại sau khi khấu trừ nghĩa vụ hợp lệ (nếu có).", latePaymentTerms: "Hai bên ghi rõ cách tính và xử lý khoản thanh toán trễ hạn, bảo đảm phù hợp quy định pháp luật.", disputeTerms: "Ưu tiên thương lượng; nếu không giải quyết được thì thực hiện theo quy định pháp luật Việt Nam.", signedOn: new Date().toISOString().slice(0, 10) };
+            Object.entries(defaults).forEach(([name, value]) => { const input = host.querySelector(`[name="${name}"]`); if (input && !input.value) input.value = value; });
+        }
+    }
     recordDialog.showModal();
 }
 
@@ -424,12 +462,13 @@ function defaultFieldValue(name, type) {
     if (type === "date") return new Date().toISOString().slice(0, 10);
     if (type === "month") return todayMonth();
     if (name === "status") return "active";
+    if (name === "purpose") return "Để ở";
     return "";
 }
 
 function selectOptions(source) {
     if (source === "rooms") return [["", "Chưa xếp phòng"], ...list("rooms").map((room) => [room.code, `${room.code} · ${room.name}`])];
-    if (source === "tenants") return list("tenants").map((tenant) => [tenant.name, tenant.name]);
+    if (source === "tenants") return list("tenants").filter((tenant) => tenant.status === "active" || tenant.name === editingRecord?.tenantName).map((tenant) => [tenant.name, tenant.name]);
     return [];
 }
 
@@ -438,12 +477,15 @@ async function saveRecord(event) {
     const settings = entitySettings[editingEntity];
     const values = Object.fromEntries(new FormData(event.currentTarget).entries());
     for (const [key, value] of Object.entries(values)) {
-        if (["price", "area", "deposit", "electricUsage", "waterUsage", "amount"].includes(key)) values[key] = Number(value || 0);
+        if (["price", "area", "deposit", "rent", "paymentDueDay", "maxOccupants", "electricityRate", "waterRate", "serviceFee", "noticePeriodDays", "depositReturnDays", "electricUsage", "waterUsage", "amount"].includes(key)) values[key] = Number(value || 0);
     }
     if (editingEntity === "rooms" && list("rooms").some((room) => room.code.toLowerCase() === values.code.toLowerCase() && room.id !== editingRecord?.id)) return showFormError("Mã phòng đã tồn tại.");
     if (editingEntity === "contracts") {
         if (values.end < values.start) return showFormError("Ngày kết thúc phải sau ngày bắt đầu.");
-        if (values.status === "active" && list("contracts").some((item) => item.roomCode === values.roomCode && item.status === "active" && item.id !== editingRecord?.id)) return showFormError("Phòng đã có hợp đồng đang hiệu lực.");
+        if (Number(values.paymentDueDay) < 1 || Number(values.paymentDueDay) > 28) return showFormError("Ngày đến hạn thanh toán cần từ ngày 1 đến ngày 28.");
+        if (list("contracts").some((item) => item.code.toLowerCase() === values.code.toLowerCase() && item.id !== editingRecord?.id)) return showFormError("Mã hợp đồng đã được sử dụng.");
+        if (values.status === "active" && list("contracts").some((item) => item.roomCode === values.roomCode && ["active", "expiring"].includes(getContractStatus(item)) && item.id !== editingRecord?.id)) return showFormError("Phòng đã có hợp đồng đang hiệu lực.");
+        values.terms = Object.fromEntries(entitySettings.contracts.fields.filter(([name]) => !["__section", "code", "roomCode", "tenantName", "deposit", "start", "end", "status"].includes(name)).map(([name]) => [name, values[name] ?? ""]));
     }
 
     if (editingEntity === "invoices") {
@@ -497,7 +539,7 @@ async function saveRecord(event) {
 
 function syncRoomStatus() {
     list("rooms").forEach((room) => {
-        const hasActiveContract = list("contracts").some((contract) => contract.roomCode === room.code && contract.status === "active");
+        const hasActiveContract = list("contracts").some((contract) => contract.roomCode === room.code && ["active", "expiring"].includes(getContractStatus(contract)));
         if (hasActiveContract) room.status = "rented";
         else if (room.status === "rented") room.status = "available";
     });
@@ -571,6 +613,53 @@ function handleAction(action, entity, id) {
     if (action === "toggle") return toggleStaff(id);
     if (action === "pay") return addPayment(id);
     if (action === "resend") return resendMemberInvite(entity, id);
+    if (action === "view" && entity === "contracts") return viewContract(id);
+    if (action === "terminate" && entity === "contracts") return terminateContract(id);
+}
+
+function contractText(value) {
+    return escapeHtml(value || "—").replace(/\r?\n/g, "<br>");
+}
+
+function viewContract(id) {
+    const contract = list("contracts").find((item) => item.id === id);
+    if (!contract) return;
+    const terms = contract.terms || contract;
+    const popup = window.open("", "_blank");
+    if (!popup) return alert("Trình duyệt đang chặn cửa sổ mới. Hãy cho phép mở cửa sổ để xem/in hợp đồng.");
+    const paymentMethods = { cash: "Tiền mặt", bank_transfer: "Chuyển khoản", other: "Khác" };
+    const section = (title, body) => `<h2>${title}</h2>${body}`;
+    const field = (label, value) => `<p><b>${label}:</b> ${contractText(value)}</p>`;
+    popup.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Hợp đồng ${escapeHtml(contract.code)}</title><style>body{max-width:850px;margin:28px auto;padding:0 26px;color:#111;font:15px/1.65 Arial,sans-serif}h1,h2{text-align:center}h1{font-size:18px}h2{font-size:16px;margin:26px 0 10px}.print{position:fixed;right:20px;top:18px;padding:9px 15px}@media print{body{margin:10mm auto}.print{display:none}.signature{break-inside:avoid}}.signature{display:flex;justify-content:space-around;text-align:center;margin-top:55px}.signature>div{width:42%}</style></head><body><button class="print" onclick="window.print()">In hợp đồng</button>
+        <h1>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM<br>Độc lập - Tự do - Hạnh phúc</h1><h2>HỢP ĐỒNG THUÊ NHÀ / PHÒNG Ở</h2><p style="text-align:center">Số: ${escapeHtml(contract.code)}</p>
+        <p>Hôm nay, ngày ${formatDate(terms.signedOn)}, tại ${contractText(terms.propertyAddress)}, các bên gồm:</p>
+        ${section("BÊN CHO THUÊ (BÊN A)", `${field("Họ và tên", terms.landlordName)}${field("CCCD/CMND", terms.landlordIdentity)}${field("Địa chỉ", terms.landlordAddress)}${field("Điện thoại", terms.landlordPhone)}`)}
+        ${section("BÊN THUÊ (BÊN B)", `${field("Họ và tên", contract.tenantName)}${field("CCCD/CMND", terms.tenantIdentity)}${field("Địa chỉ", terms.tenantAddress)}${field("Điện thoại", terms.tenantPhone)}${field("Người ở cùng", terms.occupants)}`)}
+        ${section("ĐIỀU 1. TÀI SẢN VÀ MỤC ĐÍCH THUÊ", `${field("Địa chỉ nhà", terms.propertyAddress)}${field("Phòng thuê", contract.roomCode)}${field("Mục đích thuê", terms.purpose)}${field("Số người tối đa", terms.maxOccupants)}`)}
+        ${section("ĐIỀU 2. THỜI HẠN VÀ BÀN GIAO", `${field("Thời hạn thuê", `${formatDate(contract.start)} đến ${formatDate(contract.end)}`)}${field("Ngày bàn giao", terms.handoverDate ? formatDate(terms.handoverDate) : "Theo thỏa thuận")}${field("Hiện trạng, trang thiết bị và chỉ số bàn giao", terms.handoverInventory)}`)}
+        ${section("ĐIỀU 3. GIÁ THUÊ, ĐẶT CỌC VÀ THANH TOÁN", `${field("Tiền thuê mỗi tháng", money(terms.rent))}${field("Tiền đặt cọc", money(contract.deposit))}${field("Hạn thanh toán hàng tháng", `Ngày ${terms.paymentDueDay || "—"}`)}${field("Phương thức thanh toán", paymentMethods[terms.paymentMethod] || terms.paymentMethod)}${terms.bankDetails ? field("Thông tin chuyển khoản", terms.bankDetails) : ""}${field("Giá điện", `${money(terms.electricityRate)}/kWh`)}${field("Giá nước", `${money(terms.waterRate)}/m³`)}${field("Phí dịch vụ cố định", `${money(terms.serviceFee)}/tháng`)}`)}
+        ${section("ĐIỀU 4. QUYỀN VÀ NGHĨA VỤ BÊN A", `<p>${contractText(terms.landlordObligations)}</p>`)}
+        ${section("ĐIỀU 5. QUYỀN VÀ NGHĨA VỤ BÊN B", `<p>${contractText(terms.tenantObligations)}</p>`)}
+        ${section("ĐIỀU 6. CHẬM THANH TOÁN", `<p>${contractText(terms.latePaymentTerms)}</p>`)}
+        ${section("ĐIỀU 7. CHẤM DỨT HỢP ĐỒNG VÀ XỬ LÝ ĐẶT CỌC", `${field("Thời hạn báo trước", `${terms.noticePeriodDays || "—"} ngày`)}${field("Thời hạn hoàn trả cọc sau đối chiếu", `${terms.depositReturnDays || "—"} ngày`)}<p>${contractText(terms.terminationTerms)}</p>`)}
+        ${section("ĐIỀU 8. GIẢI QUYẾT TRANH CHẤP VÀ THỎA THUẬN KHÁC", `<p>${contractText(terms.disputeTerms)}</p>${terms.additionalTerms ? `<p><b>Thỏa thuận bổ sung:</b><br>${contractText(terms.additionalTerms)}</p>` : ""}<p>Hai bên xác nhận đã đọc, hiểu và đồng ý với các điều khoản. Hợp đồng được lập thành hai bản có giá trị như nhau, mỗi bên giữ một bản.</p>`)}
+        <p>Ngày ký: ${formatDate(terms.signedOn)}</p><div class="signature"><div><b>BÊN CHO THUÊ (BÊN A)</b><br><i>Ký, ghi rõ họ tên</i><br><br><br>${contractText(terms.landlordName)}</div><div><b>BÊN THUÊ (BÊN B)</b><br><i>Ký, ghi rõ họ tên</i><br><br><br>${contractText(contract.tenantName)}</div></div></body></html>`);
+    popup.document.close();
+}
+
+async function terminateContract(id) {
+    const contract = list("contracts").find((item) => item.id === id);
+    if (!contract || !confirm(`Kết thúc hợp đồng ${contract.code}? Hãy đối chiếu công nợ, tiền cọc và biên bản bàn giao trước khi xác nhận.`)) return;
+    const roomStatuses = new Map(list("rooms").map((room) => [room.code, room.status]));
+    contract.status = "terminated";
+    syncRoomStatus();
+    try { await saveData(); }
+    catch (error) {
+        contract.status = "active";
+        list("rooms").forEach((room) => { room.status = roomStatuses.get(room.code) || room.status; });
+        return alert(`Không cập nhật được hợp đồng: ${error.message}`);
+    }
+    renderView("contracts");
 }
 
 async function resendMemberInvite(entity, id) {
