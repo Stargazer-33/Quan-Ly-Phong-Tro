@@ -601,8 +601,11 @@ body {
 .dialog-heading h2 { margin: 5px 0 0; color: #1f2937; font-size: 18px; }
 .dialog-close { width: 32px; height: 32px; border: 1px solid #e5eaf2; border-radius: 7px; background: white; color: #64748b; font-size: 20px; cursor: pointer; }
 .dialog-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 18px 21px; }
+.dialog-section-title { grid-column: 1 / -1; margin: 8px 0 0; padding-bottom: 7px; border-bottom: 1px solid #e5eaf2; color: #1e3a8a; font-size: 13px; }
+.form-field-wide { grid-column: 1 / -1; }
 .form-field { display: grid; align-content: start; gap: 6px; color: #4b5563; font-size: 11px; }
-.form-field input, .form-field select { width: 100%; min-height: 36px; padding: 0 9px; border: 1px solid #e1e6ee; border-radius: 7px; outline: none; background: #fff; color: #374151; font: inherit; font-size: 11px; }
+.form-field input, .form-field select, .form-field textarea { width: 100%; min-height: 36px; padding: 9px; border: 1px solid #e1e6ee; border-radius: 7px; outline: none; background: #fff; color: #374151; font: inherit; font-size: 11px; }
+.form-field textarea { min-height: 82px; resize: vertical; line-height: 1.5; }
 .dialog-error { min-height: 0; margin: 0 21px; color: #b63844; font-size: 11px; }
 .dialog-error:not(:empty) { margin-bottom: 10px; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 21px 18px; border-top: 1px solid #eef0f4; }
