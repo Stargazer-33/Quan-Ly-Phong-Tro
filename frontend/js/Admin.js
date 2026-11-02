@@ -538,7 +538,7 @@ async function saveRecord(event) {
             }
             recordDialog.close();
             renderView(activeView);
-            alert(`Đã lưu hồ sơ nhưng chưa gửi được email: ${error.message}\nHồ sơ đã được cập nhật. Dùng nút "Gửi email mời" hoặc "Gửi lại email" để thử lại. Nếu lỗi liên quan đến gửi thư, kiểm tra SMTP trong Supabase Dashboard → Authentication → Emails và Redirect URLs.`);
+            alert(`Đã lưu hồ sơ nhưng chưa gửi được email: ${memberInviteErrorMessage(error)}\nHồ sơ đã được cập nhật. Dùng nút "Gửi email mời" hoặc "Gửi lại email" để thử lại. Nếu lỗi liên quan đến gửi thư, kiểm tra SMTP trong Supabase Dashboard → Authentication → Emails và Redirect URLs.`);
             return;
         }
     }
@@ -556,6 +556,14 @@ function syncRoomStatus() {
 
 function showFormError(message) {
     document.getElementById("dialogError").textContent = message;
+}
+
+function memberInviteErrorMessage(error) {
+    const message = error?.message || "Lỗi không xác định.";
+    if (message.toLowerCase().includes("already") && message.toLowerCase().includes("registered")) {
+        return `${message} Edge Function trên Supabase có thể chưa được cập nhật. Chạy: npx supabase functions deploy provision-member, rồi bấm gửi email lại.`;
+    }
+    return message;
 }
 
 async function deleteRecord(entity, id) {
@@ -684,10 +692,10 @@ async function resendMemberInvite(entity, id) {
             record.authUserId = result.user_id;
             renderView(activeView);
         }
-        const emailType = result.mode === "recovery" ? "email đặt lại mật khẩu" : "email lời mời";
+        const emailType = result.mode === "recovery" ? "email thiết lập mật khẩu" : "email lời mời thiết lập mật khẩu";
         alert(`Đã gửi ${emailType} đến ${record.email}. Nhắc người nhận kiểm tra cả thư rác.`);
     } catch (error) {
-        alert(`Không gửi được email: ${error.message}`);
+        alert(`Không gửi được email: ${memberInviteErrorMessage(error)}`);
     }
 }
 

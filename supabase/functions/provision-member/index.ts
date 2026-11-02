@@ -19,7 +19,7 @@ function json(body: unknown, status = 200) {
 async function findAuthUserByEmail(adminClient: any, email: string): Promise<{ user?: any; error?: string }> {
   const target = email.trim().toLowerCase();
   const perPage = 200;
-  for (let page = 1; page <= 50; page += 1) {
+  for (let page = 1; ; page += 1) {
     const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage });
     if (error) return { error: error.message };
     const users = data?.users ?? [];
@@ -74,6 +74,43 @@ async function attachAccount(
   if (linkError) return { error: linkError.message };
 
   return { role };
+}
+
+async function sendRecoveryEmail(
+  adminClient: any,
+  options: {
+    propertyId: string;
+    table: MemberTable;
+    recordId: string;
+    authUser: any;
+    email: string;
+    fullName: string;
+    redirectTo?: string;
+    resent: boolean;
+  },
+) {
+  const { propertyId, table, recordId, authUser, email, fullName, redirectTo, resent } = options;
+  const linked = await attachAccount(adminClient, { propertyId, table, recordId, authUser, email, fullName });
+  if (linked.error) return json({ error: linked.error }, 500);
+
+  if (!authUser.email_confirmed_at) {
+    const { error: confirmError } = await adminClient.auth.admin.updateUserById(authUser.id, { email_confirm: true });
+    if (confirmError) return json({ error: confirmError.message }, 400);
+  }
+
+  const { error: recoveryError } = await adminClient.auth.resetPasswordForEmail(email, {
+    ...(redirectTo ? { redirectTo } : {}),
+  });
+  if (recoveryError) return json({ error: recoveryError.message }, 400);
+
+  return json({
+    invited: true,
+    resent,
+    role: linked.role,
+    email,
+    user_id: authUser.id,
+    mode: "recovery",
+  });
 }
 
 Deno.serve(async (request) => {
@@ -187,26 +224,8 @@ Deno.serve(async (request) => {
     // Existing account: link the record first, then send a recovery email so the
     // recipient can (re)set the password. This also works for invited users who
     // never confirmed their email or never finished setting a password.
-    const linked = await attachAccount(adminClient, { propertyId, table, recordId, authUser, email, fullName });
-    if (linked.error) return json({ error: linked.error }, 500);
-
-    if (!authUser.email_confirmed_at) {
-      const { error: confirmError } = await adminClient.auth.admin.updateUserById(authUser.id, { email_confirm: true });
-      if (confirmError) return json({ error: confirmError.message }, 400);
-    }
-
-    const { error: recoveryError } = await adminClient.auth.resetPasswordForEmail(email, {
-      ...(redirectTo ? { redirectTo } : {}),
-    });
-    if (recoveryError) return json({ error: recoveryError.message }, 400);
-
-    return json({
-      invited: true,
-      resent: action === "resend",
-      role: linked.role,
-      email,
-      user_id: authUser.id,
-      mode: "recovery",
+    return sendRecoveryEmail(adminClient, {
+      propertyId, table, recordId, authUser, email, fullName, redirectTo, resent: action === "resend",
     });
   }
 
@@ -214,8 +233,23 @@ Deno.serve(async (request) => {
     data: { full_name: fullName },
     ...(redirectTo ? { redirectTo } : {}),
   });
-  if (inviteError || !invitation?.user) {
-    return json({ error: inviteError?.message || "Không gửi được thư mời." }, 400);
+  if (inviteError) {
+    // Another request or an earlier partial attempt may have created the user
+    // after the initial lookup. Resolve that race instead of returning a duplicate error.
+    const found = await findAuthUserByEmail(adminClient, email);
+    if (found.error) return json({ error: found.error }, 500);
+    if (found.user) {
+      if (found.user.email?.toLowerCase() !== email) {
+        return json({ error: "Email hồ sơ không khớp email của tài khoản đã đăng ký. Hãy kiểm tra lại email." }, 409);
+      }
+      return sendRecoveryEmail(adminClient, {
+        propertyId, table, recordId, authUser: found.user, email, fullName, redirectTo, resent: action === "resend",
+      });
+    }
+    return json({ error: inviteError.message }, 400);
+  }
+  if (!invitation?.user) {
+    return json({ error: "Không gửi được thư mời." }, 400);
   }
 
   const invitedUser = invitation.user;
