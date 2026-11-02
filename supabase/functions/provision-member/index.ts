@@ -6,11 +6,74 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const MEMBER_TABLES = ["staff_members", "tenants"] as const;
+type MemberTable = (typeof MEMBER_TABLES)[number];
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+async function findAuthUserByEmail(adminClient: any, email: string): Promise<{ user?: any; error?: string }> {
+  const target = email.trim().toLowerCase();
+  const perPage = 200;
+  for (let page = 1; page <= 50; page += 1) {
+    const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage });
+    if (error) return { error: error.message };
+    const users = data?.users ?? [];
+    const match = users.find((user: any) => user.email?.toLowerCase() === target);
+    if (match) return { user: match };
+    if (users.length < perPage) break;
+  }
+  return { user: null };
+}
+
+async function attachAccount(
+  adminClient: any,
+  options: {
+    propertyId: string;
+    table: MemberTable;
+    recordId: string;
+    authUser: any;
+    email: string;
+    fullName: string;
+  },
+): Promise<{ error?: string; role?: string }> {
+  const { propertyId, table, recordId, authUser, email, fullName } = options;
+  const role = table === "staff_members" ? "manager" : "tenant";
+
+  const { data: existingProfile, error: profileLookupError } = await adminClient
+    .from("profiles").select("role").eq("id", authUser.id).maybeSingle();
+  if (profileLookupError) return { error: profileLookupError.message };
+  if (existingProfile?.role === "owner") {
+    return { error: "Email này thuộc tài khoản chủ trọ, không thể cấp làm tài khoản khách thuê/quản lý." };
+  }
+
+  const { error: setProfileError } = await adminClient.from("profiles").upsert({
+    id: authUser.id,
+    full_name: fullName || authUser.user_metadata?.full_name || "",
+    role,
+  });
+  if (setProfileError) return { error: setProfileError.message };
+
+  if (role === "manager") {
+    const { error: memberError } = await adminClient.from("property_members").upsert({
+      property_id: propertyId,
+      user_id: authUser.id,
+      role: "manager",
+    });
+    if (memberError) return { error: memberError.message };
+  }
+
+  const { error: linkError } = await adminClient.from(table)
+    .update({ auth_user_id: authUser.id, email })
+    .eq("property_id", propertyId)
+    .eq("id", recordId);
+  if (linkError) return { error: linkError.message };
+
+  return { role };
 }
 
 Deno.serve(async (request) => {
@@ -47,8 +110,6 @@ Deno.serve(async (request) => {
   const propertyId = input.property_id;
   const entity = input.entity;
   const recordId = input.record_id;
-  const email = input.email?.trim().toLowerCase();
-  const fullName = input.full_name?.trim();
   const action = input.action || "invite";
   let redirectTo: string | undefined;
   if (input.redirect_to) {
@@ -62,7 +123,7 @@ Deno.serve(async (request) => {
       return json({ error: "Địa chỉ nhận lời mời không hợp lệ." }, 400);
     }
   }
-  if (!propertyId || !recordId || !["staff_members", "tenants"].includes(entity || "")) {
+  if (!propertyId || !recordId || !MEMBER_TABLES.includes(entity as MemberTable)) {
     return json({ error: "Thiếu mã cơ sở hoặc hồ sơ." }, 400);
   }
 
@@ -70,31 +131,10 @@ Deno.serve(async (request) => {
     .from("properties").select("id").eq("id", propertyId).eq("owner_id", caller.id).maybeSingle();
   if (propertyError || !property) return json({ error: "Bạn không sở hữu cơ sở này." }, 403);
 
-  const table = entity as "staff_members" | "tenants";
+  const table = entity as MemberTable;
   const { data: record, error: recordError } = await adminClient
     .from(table).select("id,auth_user_id,email,full_name").eq("property_id", propertyId).eq("id", recordId).maybeSingle();
   if (recordError || !record) return json({ error: "Không tìm thấy hồ sơ cần cấp tài khoản." }, 404);
-
-  if (action === "resend") {
-    if (!record.auth_user_id || !record.email) return json({ error: "Hồ sơ chưa liên kết tài khoản hoặc thiếu email." }, 400);
-    const { data: existing, error: existingError } = await adminClient.auth.admin.getUserById(record.auth_user_id);
-    if (existingError || !existing.user || existing.user.email?.toLowerCase() !== record.email.toLowerCase()) {
-      return json({ error: "Không tìm thấy tài khoản Auth khớp với email hồ sơ." }, 404);
-    }
-    if (existing.user.email_confirmed_at) {
-      const { error: recoveryError } = await adminClient.auth.resetPasswordForEmail(record.email, {
-        ...(redirectTo ? { redirectTo } : {}),
-      });
-      if (recoveryError) return json({ error: recoveryError.message }, 400);
-      return json({ resent: true, email: record.email, mode: "recovery" });
-    }
-    const { error: resendError } = await adminClient.auth.admin.inviteUserByEmail(record.email, {
-      data: { full_name: record.full_name },
-      ...(redirectTo ? { redirectTo } : {}),
-    });
-    if (resendError) return json({ error: resendError.message }, 400);
-    return json({ resent: true, email: record.email });
-  }
 
   if (action === "enable" || action === "disable") {
     if (table !== "staff_members") return json({ error: "Chỉ hỗ trợ bật/tắt tài khoản quản lý." }, 400);
@@ -112,42 +152,84 @@ Deno.serve(async (request) => {
     return json({ enabled: action === "enable", linked: true });
   }
 
-  if (action !== "invite" || !email || !fullName) {
-    return json({ error: "Thiếu email hoặc họ tên để gửi lời mời." }, 400);
+  if (action !== "invite" && action !== "resend") {
+    return json({ error: "Hành động không hợp lệ." }, 400);
   }
-  if (record.auth_user_id) return json({ error: "Hồ sơ này đã được liên kết tài khoản." }, 409);
+
+  const email = record.email?.trim().toLowerCase();
+  if (!email) return json({ error: "Hồ sơ chưa có email để gửi lời mời." }, 400);
+  const fullName = (input.full_name?.trim() || record.full_name || "").trim();
+  if (action === "invite" && !fullName) return json({ error: "Thiếu họ tên để gửi lời mời." }, 400);
+
+  // Resolve the Auth user linked to this record, or an existing user with the same email.
+  // This makes the invite flow safe to retry: if a previous run created the Auth user but
+  // stopped before linking the record, the next attempt recovers instead of failing with
+  // "A user with this email address has already been registered".
+  let authUser: any = null;
+  if (record.auth_user_id) {
+    const { data: linkedUser, error: linkedError } = await adminClient.auth.admin.getUserById(record.auth_user_id);
+    if (!linkedError && linkedUser?.user) authUser = linkedUser.user;
+  }
+  if (!authUser) {
+    const found = await findAuthUserByEmail(adminClient, email);
+    if (found.error) return json({ error: found.error }, 500);
+    authUser = found.user ?? null;
+  }
+
+  if (authUser?.email && authUser.email.toLowerCase() !== email) {
+    return json({ error: "Email hồ sơ không khớp email của tài khoản đã đăng ký. Hãy kiểm tra lại email." }, 409);
+  }
+  if (action === "invite" && record.auth_user_id && authUser) {
+    return json({ error: "Hồ sơ này đã được liên kết tài khoản." }, 409);
+  }
+
+  if (authUser) {
+    // Existing account: link the record first, then send a recovery email so the
+    // recipient can (re)set the password. This also works for invited users who
+    // never confirmed their email or never finished setting a password.
+    const linked = await attachAccount(adminClient, { propertyId, table, recordId, authUser, email, fullName });
+    if (linked.error) return json({ error: linked.error }, 500);
+
+    if (!authUser.email_confirmed_at) {
+      const { error: confirmError } = await adminClient.auth.admin.updateUserById(authUser.id, { email_confirm: true });
+      if (confirmError) return json({ error: confirmError.message }, 400);
+    }
+
+    const { error: recoveryError } = await adminClient.auth.resetPasswordForEmail(email, {
+      ...(redirectTo ? { redirectTo } : {}),
+    });
+    if (recoveryError) return json({ error: recoveryError.message }, 400);
+
+    return json({
+      invited: true,
+      resent: action === "resend",
+      role: linked.role,
+      email,
+      user_id: authUser.id,
+      mode: "recovery",
+    });
+  }
 
   const { data: invitation, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
     data: { full_name: fullName },
     ...(redirectTo ? { redirectTo } : {}),
   });
-  if (inviteError || !invitation.user) {
+  if (inviteError || !invitation?.user) {
     return json({ error: inviteError?.message || "Không gửi được thư mời." }, 400);
   }
 
-  const role = table === "staff_members" ? "manager" : "tenant";
   const invitedUser = invitation.user;
-  const { error: setProfileError } = await adminClient.from("profiles").upsert({
-    id: invitedUser.id,
-    full_name: fullName,
-    role,
+  const linked = await attachAccount(adminClient, {
+    propertyId, table, recordId, authUser: invitedUser, email, fullName,
   });
-  if (setProfileError) return json({ error: setProfileError.message }, 500);
+  if (linked.error) return json({ error: linked.error }, 500);
 
-  if (role === "manager") {
-    const { error: memberError } = await adminClient.from("property_members").upsert({
-      property_id: propertyId,
-      user_id: invitedUser.id,
-      role: "manager",
-    });
-    if (memberError) return json({ error: memberError.message }, 500);
-  }
-
-  const { error: linkError } = await adminClient.from(table)
-    .update({ auth_user_id: invitedUser.id, email })
-    .eq("property_id", propertyId)
-    .eq("id", recordId);
-  if (linkError) return json({ error: linkError.message }, 500);
-
-  return json({ invited: true, role, email, user_id: invitedUser.id });
+  return json({
+    invited: true,
+    resent: false,
+    role: linked.role,
+    email,
+    user_id: invitedUser.id,
+    mode: "invite",
+  });
 });

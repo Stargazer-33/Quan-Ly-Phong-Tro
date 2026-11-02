@@ -1160,6 +1160,7 @@ function renderQuanLySuCo() {
                     </select>
                 </div>
             </div>
+            
 
             <!-- DANH SÁCH TICKET SỰ CỐ -->
             <div class="tickets-container">
