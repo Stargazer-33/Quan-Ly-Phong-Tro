@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Thiết lập tài khoản</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    body { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #f4f6f8; }
+    .setup-card { width: min(100%, 460px); padding: 36px; border-radius: 18px; background: #fff; box-shadow: 0 16px 48px #18222f1a; text-align: center; }
+    .setup-card h1 { margin: 0 0 12px; color: #18222f; font-size: 1.6rem; }
+    .setup-card p { margin: 0; color: #5e6875; line-height: 1.65; }
+  </style>
+</head>
+<body>
+  <main class="setup-card">
+    <h1>Thiết lập tài khoản</h1>
+    <p>Đang xác thực lời mời. Bạn sẽ được yêu cầu tạo mật khẩu để hoàn tất.</p>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>

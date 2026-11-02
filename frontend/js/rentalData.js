@@ -134,7 +134,12 @@
     for (const table of sequence) {
       if (!rows[table].length) continue;
       const result = await window.supabaseClient.from(table).upsert(rows[table], { onConflict: "property_id,id" });
-      if (result.error) throw result.error;
+      if (result.error) {
+        const error = new Error(`Không lưu được bảng ${table}: ${result.error.message}`);
+        error.cause = result.error;
+        error.table = table;
+        throw error;
+      }
     }
   }
 
@@ -169,8 +174,10 @@
   }
 
   async function inviteMember(propertyId, entity, recordId, email, fullName) {
+    const redirectTo = new URL("index.html", window.location.href);
+    redirectTo.searchParams.set("account_setup", "1");
     return invokeProvisionMember({ property_id: propertyId, entity, record_id: recordId,
-      email, full_name: fullName, redirect_to: new URL("index.html", window.location.href).href });
+      email, full_name: fullName, redirect_to: redirectTo.href });
   }
 
   async function setManagerEnabled(propertyId, recordId, enabled) {
@@ -179,8 +186,10 @@
   }
 
   async function resendMemberInvite(propertyId, entity, recordId) {
+    const redirectTo = new URL("index.html", window.location.href);
+    redirectTo.searchParams.set("account_setup", "1");
     return invokeProvisionMember({ action: "resend", property_id: propertyId, entity, record_id: recordId,
-      redirect_to: new URL("index.html", window.location.href).href });
+      redirect_to: redirectTo.href });
   }
 
   window.rentalRepository = { propertyForUser, load, save, remove, addPayment, inviteMember, resendMemberInvite, setManagerEnabled, isInitialized, markInitialized };

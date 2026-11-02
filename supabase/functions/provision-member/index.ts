@@ -152,8 +152,9 @@ Deno.serve(async (request) => {
   if (input.redirect_to) {
     try {
       const target = new URL(input.redirect_to);
-      if (target.origin !== request.headers.get("Origin") || !target.pathname.endsWith("/index.html")) {
-        return json({ error: "Địa chỉ nhận lời mời phải là trang index của website đang mở." }, 400);
+      const isAllowedSetupPage = target.pathname.endsWith("/account-setup.html") || target.pathname.endsWith("/index.html");
+      if (target.origin !== request.headers.get("Origin") || !isAllowedSetupPage) {
+        return json({ error: "Địa chỉ nhận lời mời phải là trang thiết lập tài khoản của website đang mở." }, 400);
       }
       redirectTo = target.href;
     } catch {

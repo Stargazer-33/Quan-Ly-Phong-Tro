@@ -11,6 +11,10 @@ Migration tạo các bảng phòng, khách thuê, nhân viên, hợp đồng, b�
 
 Sau đó đăng nhập lại trang Admin và kiểm tra **Quản lý phòng**, **Khách thuê**, **Hóa đơn**. Admin đọc/ghi các bảng nghiệp vụ; dữ liệu cũ được lấy từ `rental_data` trong lúc chạy migration.
 
+## 1.1. Bổ sung điều khoản chi tiết cho hợp đồng
+
+Trang Admin lưu thông tin hai bên và các điều khoản thuê mở rộng trong cột JSONB `terms`. Nếu migration 002 đã chạy trên project chung, chạy **một lần** migration mới `supabase/migrations/202610010003_contract_terms.sql` trong SQL Editor. Không chạy lại migration 002. Thành viên khác chỉ cần pull code mới; không chạy migration 003 lần nữa.
+
 ## 2. Bật chức năng mời tài khoản từ Admin
 
 Tạo cấu hình CLI (nếu thư mục `supabase/config.toml` chưa có), rồi liên kết project và deploy Edge Function:
@@ -22,11 +26,15 @@ npx supabase link --project-ref snemelhgumvblexkzgrw
 npx supabase functions deploy provision-member
 ```
 
-Khi thay đổi file Edge Function, chạy lại lệnh deploy này để cập nhật bản trên Supabase. Trong Admin, các hồ sơ đã có tài khoản sẽ có nút **Gửi lại email**. Người nhận mở link mời ở trang đăng nhập và đặt mật khẩu để kích hoạt tài khoản.
+Khi thay đổi file Edge Function, chạy lại `npx supabase functions deploy provision-member` để cập nhật bản trên Supabase. Bản hiện tại sẽ xử lý email đã tồn tại bằng cách liên kết hồ sơ và gửi email thiết lập mật khẩu, bao gồm cả trường hợp user được tạo đồng thời với lời mời. Người nhận mở link trong email rồi tự tạo mật khẩu ở trang đăng nhập để kích hoạt tài khoản. Trong Admin, các hồ sơ đã có tài khoản sẽ có nút **Gửi lại email**.
+
+> **Quan trọng — email thật cần Custom SMTP.** Supabase chỉ dùng dịch vụ email mặc định để test: chỉ gửi được tới email thuộc team của project, giới hạn khoảng 2 email/giờ và không có cam kết gửi tới. Vì vậy hồ sơ vẫn lưu được nhưng khách thuê/quản lý sẽ không nhận được thư. Vào **Authentication → Emails/SMTP Settings**, bật **Custom SMTP** (Gmail App Password, Resend, SendGrid, Brevo…) rồi gửi thử lại. Nếu chưa cấu hình SMTP, lỗi thường nằm ở bước `inviteUserByEmail`/`resetPasswordForEmail` trong Edge Function.
+>
+> Edge Function hiện xử lý được cả trường hợp hồ sơ đã lưu nhưng lần mời trước bị lỗi giữa chừng: nếu email đã có tài khoản Auth, hàm sẽ liên kết lại hồ sơ và gửi email thiết lập mật khẩu thay vì báo "email đã được đăng ký". Người nhận luôn tự đặt mật khẩu qua link trong email; chủ trọ không tạo hoặc gửi mật khẩu thay họ. Nếu vẫn thấy lỗi `A user with this email address has already been registered`, hãy deploy lại function theo lệnh trên rồi bấm **Gửi email mời** hoặc **Gửi lại email**. Khi lỗi SMTP, Admin tải lại trạng thái hồ sơ để có thể thử gửi lại sau khi sửa cấu hình.
 
 Supabase Edge Function cần biến môi trường server-side `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Runtime của Supabase thường cung cấp các biến project này sẵn. Nếu dashboard báo thiếu biến, cấu hình trong **Edge Functions → Secrets**; không đưa service-role key vào frontend/Git và không gửi key đó trong chat.
 
-Trong **Authentication → URL Configuration**, thêm địa chỉ Live Server đang mở vào **Redirect URLs**. Ví dụ nếu trang Admin chạy ở `http://127.0.0.1:5500/frontend/Admin.html`, thêm `http://127.0.0.1:5500/**`; thay cổng và host theo đúng địa chỉ trên trình duyệt. Mã mời sẽ chuyển người nhận về `index.html` cùng host/cổng của trang Admin. Trên điện thoại cùng Wi-Fi, dùng IP máy tính thay cho `localhost` và thêm IP đó vào Redirect URLs. Địa chỉ localhost/IP nội bộ chỉ dùng được trên máy tính hoặc mạng nội bộ; người nhận ở ngoài mạng cần một website đã deploy công khai. Email nhân viên/khách thuê cần là email họ có thể mở để nhận lời mời và đặt mật khẩu.
+Trong **Authentication → URL Configuration**, thêm URL trang thiết lập tài khoản vào **Redirect URLs** một lần. Ví dụ nếu website đã deploy tại `https://ten-mien-cua-ban.com`, thêm `https://ten-mien-cua-ban.com/frontend/account-setup.html?account_setup=1`. Mở Admin từ cùng website đã deploy trước khi gửi lời mời; email sẽ đưa người nhận thẳng tới trang thiết lập này. Khi chạy thử bằng Live Server, thêm URL chứa host/cổng đang dùng, ví dụ `http://127.0.0.1:5500/frontend/account-setup.html?account_setup=1`; link localhost chỉ mở được trên máy có web server đó đang chạy. Người nhận ngoài mạng cần website đã deploy công khai. Email nhân viên/khách thuê phải là email họ mở được để nhận lời mời và đặt mật khẩu. Nếu đổi mã nguồn Edge Function, deploy lại bằng `npx supabase functions deploy provision-member`.
 
 Trong Admin:
 - Thêm nhân viên và nhập email để gửi lời mời role `manager`, gán vào cơ sở của chủ trọ.
