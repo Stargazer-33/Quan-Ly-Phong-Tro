@@ -221,8 +221,9 @@ function table(headers, rows) {
 
 function actions(id, options = ["edit", "delete"]) {
     const labels = { view: "Xem / In", edit: "Sửa", delete: "Xóa", pay: "Ghi nhận thu", toggle: "Khóa / Mở", terminate: "Thanh lý" };
-    if (["staff", "tenants"].includes(activeView) && list(activeView).find((item) => item.id === id)?.authUserId) options = ["resend", ...options];
-    labels.resend = "Gửi lại email";
+    const member = ["staff", "tenants"].includes(activeView) ? list(activeView).find((item) => item.id === id) : null;
+    if (member?.email) options = ["resend", ...options];
+    labels.resend = member?.authUserId ? "Gửi lại email" : "Gửi email mời";
     return `<div class="row-actions">${options.map((action) => `<button class="table-action" data-action="${action}" data-id="${escapeHtml(id)}">${labels[action]}</button>`).join("")}</div>`;
 }
 
@@ -529,7 +530,15 @@ async function saveRecord(event) {
             );
             savedRecord.authUserId = invited.user_id;
         } catch (error) {
-            showFormError(`Đã lưu hồ sơ nhưng chưa gửi được lời mời. Cần triển khai Edge Function provision-member: ${error.message}`);
+            try {
+                data = await window.rentalRepository.load(supabasePropertyId);
+            } catch (refreshError) {
+                showFormError(`Đã lưu hồ sơ nhưng chưa gửi được email: ${error.message} Không tải lại được trạng thái hồ sơ: ${refreshError.message}`);
+                return;
+            }
+            recordDialog.close();
+            renderView(activeView);
+            alert(`Đã lưu hồ sơ nhưng chưa gửi được email: ${error.message}\nHồ sơ đã được cập nhật. Dùng nút "Gửi email mời" hoặc "Gửi lại email" để thử lại. Nếu lỗi liên quan đến gửi thư, kiểm tra SMTP trong Supabase Dashboard → Authentication → Emails và Redirect URLs.`);
             return;
         }
     }
@@ -665,16 +674,20 @@ async function terminateContract(id) {
 async function resendMemberInvite(entity, id) {
     const staff = entity === "staff";
     const record = list(staff ? "staff" : "tenants").find((item) => item.id === id);
-    if (!record?.authUserId || !record.email) return alert("Hồ sơ chưa liên kết tài khoản hoặc thiếu email.");
-    if (!confirm(`Gửi lại email thiết lập tài khoản đến ${record.email}?`)) return;
+    if (!record?.email) return alert("Hồ sơ chưa có email để gửi lời mời.");
+    if (!confirm(`Gửi email thiết lập tài khoản đến ${record.email}?`)) return;
     try {
         const result = await window.rentalRepository.resendMemberInvite(
             supabasePropertyId, staff ? "staff_members" : "tenants", id
         );
+        if (!record.authUserId) {
+            record.authUserId = result.user_id;
+            renderView(activeView);
+        }
         const emailType = result.mode === "recovery" ? "email đặt lại mật khẩu" : "email lời mời";
         alert(`Đã gửi ${emailType} đến ${record.email}. Nhắc người nhận kiểm tra cả thư rác.`);
     } catch (error) {
-        alert(`Không gửi lại được email: ${error.message}`);
+        alert(`Không gửi được email: ${error.message}`);
     }
 }
 
