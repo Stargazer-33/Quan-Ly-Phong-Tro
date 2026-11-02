@@ -141,7 +141,6 @@ async function saveData() {
         await window.rentalRepository.save(supabasePropertyId, supabaseUser.id, data);
     } catch (error) {
         console.error("Supabase save failed:", error);
-        alert(`Không lưu được dữ liệu lên Supabase: ${error.message}`);
         throw error;
     }
 }
@@ -508,6 +507,8 @@ async function saveRecord(event) {
     }
 
     let savedRecord = editingRecord;
+    const originalRecord = editingRecord ? JSON.parse(JSON.stringify(editingRecord)) : null;
+    const wasNewRecord = !editingRecord;
     if (editingRecord) Object.assign(editingRecord, values);
     else {
         savedRecord = { id: makeId(settings.idPrefix), ...(editingEntity === "staff" ? { status: "active" } : {}), ...values };
@@ -519,6 +520,14 @@ async function saveRecord(event) {
     try {
         await saveData();
     } catch (error) {
+        if (wasNewRecord) {
+            data[settings.key] = list(settings.key).filter((item) => item !== savedRecord);
+            editingRecord = null;
+        } else {
+            Object.keys(savedRecord).forEach((key) => delete savedRecord[key]);
+            Object.assign(savedRecord, originalRecord);
+        }
+        if (editingEntity === "contracts") syncRoomStatus();
         showFormError(`Không lưu được hồ sơ lên Supabase: ${error.message}`);
         return;
     }

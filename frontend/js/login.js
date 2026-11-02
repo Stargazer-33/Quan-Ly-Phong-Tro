@@ -8,6 +8,8 @@ const passwordInput = document.querySelector('.login-box input[type="password"]'
 let passwordSetupOpen = false;
 const initialAuthType = new URLSearchParams(window.location.hash.slice(1)).get("type")
   || new URLSearchParams(window.location.search).get("type");
+const isAccountSetupLink = ["invite", "recovery"].includes(initialAuthType)
+  || new URLSearchParams(window.location.search).get("account_setup") === "1";
 
 async function finishInvitation(session) {
   if (passwordSetupOpen || !session?.user) return;
@@ -47,6 +49,7 @@ async function finishInvitation(session) {
   const { data: profile, error: profileError } = await window.supabaseClient
     .from("profiles").select("role").eq("id", session.user.id).single();
   if (profileError) {
+    passwordSetupOpen = false;
     if (window.Swal) await Swal.fire({ icon: "error", title: "Chưa tải được vai trò", text: profileError.message });
     else window.alert(`Chưa tải được vai trò: ${profileError.message}`);
     return;
@@ -58,12 +61,12 @@ async function finishInvitation(session) {
 }
 
 window.supabaseClient.auth.onAuthStateChange((event, session) => {
-  if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && initialAuthType === "invite")) {
+  if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && isAccountSetupLink)) {
     setTimeout(() => finishInvitation(session), 0);
   }
 });
 
-if (["invite", "recovery"].includes(initialAuthType)) {
+if (isAccountSetupLink) {
   window.supabaseClient.auth.getSession().then(({ data, error }) => {
     if (error) {
       console.error("Could not read invitation session:", error);
