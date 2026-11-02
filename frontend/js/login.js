@@ -10,34 +10,50 @@ const initialAuthType = new URLSearchParams(window.location.hash.slice(1)).get("
   || new URLSearchParams(window.location.search).get("type");
 
 async function finishInvitation(session) {
-  if (passwordSetupOpen || !session?.user || !window.Swal) return;
+  if (passwordSetupOpen || !session?.user) return;
   passwordSetupOpen = true;
-  const { value: password, isConfirmed } = await Swal.fire({
-    title: "Tạo mật khẩu tài khoản",
-    text: "Đặt mật khẩu để hoàn tất việc kích hoạt tài khoản.",
-    input: "password",
-    inputAttributes: { autocomplete: "new-password", minlength: 8 },
-    inputPlaceholder: "Ít nhất 8 ký tự",
-    confirmButtonText: "Lưu mật khẩu",
-    allowOutsideClick: false,
-    inputValidator: (value) => value?.length >= 8 ? undefined : "Mật khẩu cần ít nhất 8 ký tự."
-  });
-  if (!isConfirmed) { passwordSetupOpen = false; return; }
+  let password;
+  if (window.Swal) {
+    const result = await Swal.fire({
+      title: "Tạo mật khẩu tài khoản",
+      text: "Tự tạo mật khẩu của bạn để hoàn tất việc kích hoạt tài khoản.",
+      input: "password",
+      inputAttributes: { autocomplete: "new-password", minlength: 8 },
+      inputPlaceholder: "Ít nhất 8 ký tự",
+      confirmButtonText: "Lưu mật khẩu",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      inputValidator: (value) => value?.length >= 8 ? undefined : "Mật khẩu cần ít nhất 8 ký tự."
+    });
+    if (!result.isConfirmed) { passwordSetupOpen = false; return; }
+    password = result.value;
+  } else {
+    password = window.prompt("Tạo mật khẩu tài khoản (ít nhất 8 ký tự):");
+    if (!password) { passwordSetupOpen = false; return; }
+    if (password.length < 8) {
+      window.alert("Mật khẩu cần ít nhất 8 ký tự. Hãy mở lại liên kết trong email để thử lại.");
+      passwordSetupOpen = false;
+      return;
+    }
+  }
 
   const { error } = await window.supabaseClient.auth.updateUser({ password });
   if (error) {
     passwordSetupOpen = false;
-    await Swal.fire({ icon: "error", title: "Chưa lưu được mật khẩu", text: error.message });
+    if (window.Swal) await Swal.fire({ icon: "error", title: "Chưa lưu được mật khẩu", text: error.message });
+    else window.alert(`Chưa lưu được mật khẩu: ${error.message}`);
     return;
   }
   const { data: profile, error: profileError } = await window.supabaseClient
     .from("profiles").select("role").eq("id", session.user.id).single();
   if (profileError) {
-    await Swal.fire({ icon: "error", title: "Chưa tải được vai trò", text: profileError.message });
+    if (window.Swal) await Swal.fire({ icon: "error", title: "Chưa tải được vai trò", text: profileError.message });
+    else window.alert(`Chưa tải được vai trò: ${profileError.message}`);
     return;
   }
   const destinations = { owner: "Admin.html", admin: "Admin.html", manager: "QuanLi.html", tenant: "KhachThue.html" };
-  await Swal.fire({ icon: "success", title: "Tài khoản đã sẵn sàng", timer: 1000, showConfirmButton: false });
+  if (window.Swal) await Swal.fire({ icon: "success", title: "Tài khoản đã sẵn sàng", timer: 1000, showConfirmButton: false });
+  else window.alert("Tài khoản đã sẵn sàng. Đang chuyển đến trang làm việc.");
   window.location.href = destinations[profile.role] || "index.html";
 }
 
@@ -46,6 +62,28 @@ window.supabaseClient.auth.onAuthStateChange((event, session) => {
     setTimeout(() => finishInvitation(session), 0);
   }
 });
+
+if (["invite", "recovery"].includes(initialAuthType)) {
+  window.supabaseClient.auth.getSession().then(({ data, error }) => {
+    if (error) {
+      console.error("Could not read invitation session:", error);
+      if (window.Swal) Swal.fire({ icon: "error", title: "Không xác thực được liên kết", text: error.message });
+      else window.alert(`Không xác thực được liên kết: ${error.message}`);
+      return;
+    }
+    if (data.session) finishInvitation(data.session);
+    else {
+      const message = "Liên kết không còn hiệu lực hoặc chưa được xác thực. Hãy yêu cầu chủ trọ gửi lại email mời.";
+      if (window.Swal) Swal.fire({ icon: "error", title: "Không mở được liên kết", text: message });
+      else window.alert(message);
+    }
+  }).catch((error) => {
+    console.error("Could not read invitation session:", error);
+    const message = error.message || "Không thể kiểm tra liên kết.";
+    if (window.Swal) Swal.fire({ icon: "error", title: "Không xác thực được liên kết", text: message });
+    else window.alert(`Không xác thực được liên kết: ${message}`);
+  });
+}
 
 openLoginBtn?.addEventListener("click", (event) => {
   event.preventDefault();
