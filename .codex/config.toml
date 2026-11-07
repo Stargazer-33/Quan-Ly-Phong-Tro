@@ -1,0 +1,3 @@
+[mcp_servers.codegraph]
+command = "npx"
+args = ["-y", "@astudioplus/codegraph-mcp", "--mcp"]
