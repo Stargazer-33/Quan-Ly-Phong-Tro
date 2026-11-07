@@ -120,6 +120,8 @@ const viewInfo = {
     contracts: ["Quản lý hợp đồng", "Thông tin các bên, điều khoản thuê và bàn giao", "Danh sách hợp đồng", "Lập, xem/in và theo dõi hợp đồng thuê phòng"],
     services: ["Cấu hình giá dịch vụ", "Đơn giá điện, nước và dịch vụ", "Bảng giá dịch vụ", "Cập nhật đơn giá áp dụng cho hóa đơn mới"],
     invoices: ["Hóa đơn và thanh toán", "Lập hóa đơn và ghi nhận các lần thu", "Danh sách hóa đơn", "Theo dõi hóa đơn theo kỳ và trạng thái thanh toán"],
+    incidents: ["Quản lý sự cố", "Danh sách sự cố và yêu cầu sửa chữa từ khách thuê", "Danh sách sự cố", "Tiếp nhận và cập nhật tiến độ xử lý"],
+    notices: ["Quản lý thông báo", "Thông báo chung gửi đến tất cả khách thuê", "Danh sách thông báo", "Đăng và quản lý thông báo nội bộ"],
     revenue: ["Báo cáo doanh thu", "Doanh thu đã lập, đã thu và chi phí", "Tổng hợp doanh thu", "Số liệu được tổng hợp từ mock data hóa đơn và phiếu chi"],
     debts: ["Báo cáo công nợ", "Các hóa đơn còn khoản phải thu", "Danh sách công nợ", "Theo dõi số đã thu và số còn phải thu"],
     expenses: ["Quản lý chi phí", "Chi phí sửa chữa, bảo trì và vận hành", "Danh sách chi phí", "Ghi lại và tra cứu các khoản chi của khu trọ"]
@@ -147,11 +149,11 @@ async function saveData() {
 
 async function initializeSupabaseData() {
     try {
-        const auth = await window.requireCurrentProfile(["owner"]);
+        const auth = await window.requireCurrentProfile(["owner", "admin"]);
         if (!auth) return;
         supabaseUser = auth.user;
         document.getElementById("ownerEmail").textContent = auth.user.email || "";
-        const property = await window.rentalRepository.propertyForUser(auth.user, "owner");
+        const property = await window.rentalRepository.propertyForUser(auth.user, auth.profile.role || "owner");
         supabasePropertyId = property.id;
         data = await window.rentalRepository.load(supabasePropertyId);
         if (!(await window.rentalRepository.isInitialized(supabasePropertyId))) {
@@ -190,7 +192,8 @@ function statusBadge(status, labels = {}) {
     const defaults = {
         active: ["Đang hoạt động", "badge-green"], inactive: ["Đã khóa", "badge-gray"], expiring: ["Sắp hết hạn", "badge-orange"], expired: ["Đã hết hạn", "badge-red"],
         available: ["Còn trống", "badge-green"], rented: ["Đang thuê", "badge-blue"], maintenance: ["Bảo trì", "badge-orange"],
-        terminated: ["Đã kết thúc", "badge-gray"], paid: ["Đã thanh toán", "badge-green"], partial: ["Thanh toán một phần", "badge-orange"], unpaid: ["Chưa thanh toán", "badge-red"]
+        terminated: ["Đã kết thúc", "badge-gray"], paid: ["Đã thanh toán", "badge-green"], partial: ["Thanh toán một phần", "badge-orange"], unpaid: ["Chưa thanh toán", "badge-red"],
+        new: ["Mới tiếp nhận", "badge-blue"], processing: ["Đang xử lý", "badge-orange"], resolved: ["Đã hoàn thành", "badge-green"]
     };
     const [label, color] = labels[status] || defaults[status] || [status || "—", "badge-gray"];
     return `<span class="table-badge ${color}">${escapeHtml(label)}</span>`;
@@ -302,6 +305,11 @@ const entitySettings = {
     invoices: { key: "invoices", idPrefix: "HDN", title: "Tạo hóa đơn", fields: [
         ["period", "Kỳ hóa đơn", "month", true], ["roomCode", "Phòng", "select", true, "rooms"], ["electricUsage", "Số điện tiêu thụ (kWh)", "number"], ["waterUsage", "Số nước tiêu thụ (m³)", "number"], ["dueDate", "Hạn thanh toán", "date" ]
     ], columns: ["MÃ HÓA ĐƠN", "KỲ", "PHÒNG", "KHÁCH THUÊ", "TỔNG TIỀN", "ĐÃ THU", "TRẠNG THÁI", "THAO TÁC"] },
+    incidents: { key: "incidents", idPrefix: "SC", title: "Sự cố", fields: [], columns: ["MÃ SC", "PHÒNG", "KHÁCH BÁO", "TIÊU ĐỀ", "PHÂN LOẠI", "MỨC ĐỘ", "NGÀY GỬI", "TRẠNG THÁI", "THAO TÁC"] },
+    notices: { key: "notices", idPrefix: "TB", title: "Thêm thông báo", fields: [
+        ["title", "Tiêu đề thông báo", "text", true],
+        ["content", "Nội dung chi tiết", "textarea", true]
+    ], columns: ["TIÊU ĐỀ", "NỘI DUNG", "NGÀY ĐĂNG", "THAO TÁC"] },
     expenses: { key: "expenses", idPrefix: "CP", title: "Thêm khoản chi", fields: [
         ["date", "Ngày chi", "date", true], ["name", "Khoản chi", "text", true], ["category", "Danh mục", "select", true, [["Sửa chữa", "Sửa chữa"], ["Bảo trì", "Bảo trì"], ["Vận hành", "Vận hành"], ["Khác", "Khác"]]],
         ["roomCode", "Khu vực / phòng", "text"], ["amount", "Số tiền (VNĐ)", "number", true], ["note", "Ghi chú", "text"]
@@ -381,7 +389,53 @@ function renderRevenue(month = todayMonth()) {
 function renderTableView(entity, rows, options = {}) {
     const settings = entitySettings[entity];
     const summary = options.summary ? `<span class="table-summary">${escapeHtml(options.summary)}</span>` : "";
-    sectionBody.innerHTML = `${toolbar(options)}<div class="table-heading"><span>${escapeHtml(settings.title.replace("Thêm ", ""))} · ${list(entity).length} mục</span><button class="add-button" data-action="add" data-entity="${entity}">＋ ${options.addLabel || settings.title}</button></div>${table(settings.columns, rows)}${summary}`;
+    const addBtn = options.addLabel !== null ? `<button class="add-button" data-action="add" data-entity="${entity}">＋ ${options.addLabel || settings.title}</button>` : "";
+    sectionBody.innerHTML = `${toolbar(options)}<div class="table-heading"><span>${escapeHtml(settings.title.replace("Thêm ", ""))} · ${list(entity).length} mục</span>${addBtn}</div>${table(settings.columns, rows)}${summary}`;
+}
+
+function renderIncidents(search = "", status = "all") {
+    const severityLabels = { low: "Thấp", medium: "Trung bình", high: "Cao" };
+    const items = list("incidents").filter((item) =>
+        `${item.code} ${item.roomCode} ${item.tenantName} ${item.title} ${item.category}`.toLowerCase().includes(search)
+        && (status === "all" || item.status === status)
+    );
+    const rows = items.map((item) => {
+        let opButtons = `<button class="table-action" data-action="view_incident" data-id="${escapeHtml(item.id)}">Chi tiết</button>`;
+        if (item.status === "new") {
+            opButtons += `<button class="table-action" data-action="accept_incident" data-id="${escapeHtml(item.id)}">Tiếp nhận</button>`;
+        } else if (item.status === "processing") {
+            opButtons += `<button class="table-action" data-action="resolve_incident" data-id="${escapeHtml(item.id)}">Hoàn thành</button>`;
+        }
+        return row([
+            `<strong>${escapeHtml(item.code)}</strong>`,
+            escapeHtml(item.roomCode || "—"),
+            escapeHtml(item.tenantName || "Khách thuê"),
+            `<strong>${escapeHtml(item.title)}</strong>`,
+            escapeHtml(item.category || "Khác"),
+            severityLabels[item.severity] || escapeHtml(item.severity),
+            formatDate(item.date ? String(item.date).slice(0, 10) : ""),
+            statusBadge(item.status),
+            `<div class="row-actions">${opButtons}</div>`
+        ]);
+    });
+    renderTableView("incidents", rows, {
+        search: true,
+        status: [["new", "Mới tiếp nhận"], ["processing", "Đang xử lý"], ["resolved", "Đã hoàn thành"]],
+        addLabel: null
+    });
+}
+
+function renderNotices(search = "") {
+    const items = (data.notices || []).filter((item) =>
+        `${item.title} ${item.content}`.toLowerCase().includes(search)
+    );
+    const rows = items.map((item) => row([
+        `<strong>${escapeHtml(item.title)}</strong>`,
+        escapeHtml(item.content),
+        formatDate((item.publishedAt || item.createdAt) ? String(item.publishedAt || item.createdAt).slice(0, 10) : ""),
+        `<div class="row-actions"><button class="table-action" data-action="delete_notice" data-id="${escapeHtml(item.id)}">Xóa</button></div>`
+    ]));
+    renderTableView("notices", rows, { search: true, addLabel: "Tạo thông báo" });
 }
 
 function reportCards(cards) {
@@ -403,6 +457,7 @@ function renderView(view, preserveFilters = true) {
     const renderers = {
         overview: renderOverview, staff: () => renderStaff(search), rooms: () => renderRooms(search, status), tenants: () => renderTenants(search),
         contracts: () => renderContracts(search, status), services: () => renderServices(search), invoices: () => renderInvoices(search, status),
+        incidents: () => renderIncidents(search, status), notices: () => renderNotices(search),
         revenue: () => renderRevenue(month), debts: () => renderDebts(search), expenses: () => renderExpenses(search, month)
     };
     renderers[activeView]();
@@ -486,24 +541,85 @@ async function saveRecord(event) {
         if (list("contracts").some((item) => item.code.toLowerCase() === values.code.toLowerCase() && item.id !== editingRecord?.id)) return showFormError("Mã hợp đồng đã được sử dụng.");
         if (values.status === "active" && list("contracts").some((item) => item.roomCode === values.roomCode && ["active", "expiring"].includes(getContractStatus(item)) && item.id !== editingRecord?.id)) return showFormError("Phòng đã có hợp đồng đang hiệu lực.");
         values.terms = Object.fromEntries(entitySettings.contracts.fields.filter(([name]) => !["__section", "code", "roomCode", "tenantName", "deposit", "start", "end", "status"].includes(name)).map(([name]) => [name, values[name] ?? ""]));
+        // Tự động đồng bộ phòng vào hồ sơ khách thuê để khách thuê không bị kẹt ở "Chưa xếp phòng"
+        if (values.status === "active") {
+            const tenant = list("tenants").find((t) => t.name === values.tenantName);
+            if (tenant) {
+                tenant.roomCode = values.roomCode;
+                values.tenantId = tenant.id;
+            }
+        }
+    }
+
+    if (editingEntity === "notices") {
+        try {
+            const added = await window.rentalRepository.addNotice(supabasePropertyId, {
+                title: values.title,
+                content: values.content
+            });
+            if (!data.notices) data.notices = [];
+            data.notices.unshift({
+                id: added.id,
+                title: added.title,
+                content: added.content,
+                publishedAt: added.published_at,
+                createdAt: added.created_at
+            });
+            recordDialog.close();
+            renderView("notices");
+            return;
+        } catch (err) {
+            return showFormError(`Không đăng được thông báo: ${err.message}`);
+        }
     }
 
     if (editingEntity === "invoices") {
         const room = list("rooms").find((item) => item.code === values.roomCode);
         if (!room) return showFormError("Không tìm thấy phòng đã chọn.");
         if (list("invoices").some((item) => item.period === values.period && item.roomCode === values.roomCode && item.id !== editingRecord?.id)) return showFormError("Phòng này đã có hóa đơn trong kỳ.");
-        const tenant = list("tenants").find((item) => item.roomCode === room.code && item.status === "active");
-        const electricRate = list("services").find((item) => item.name.toLowerCase().includes("điện"))?.price || 0;
-        const waterRate = list("services").find((item) => item.name.toLowerCase().includes("nước"))?.price || 0;
-        const fixedRates = list("services").filter((item) => item.unit.toLowerCase().includes("phòng")).reduce((sum, item) => sum + Number(item.price || 0), 0);
-        values.tenantName = tenant?.name || "Chưa có khách thuê";
-        values.rent = Number(room.price);
+        
+        // Ưu tiên lấy khách thuê từ hợp đồng active của phòng, sau đó từ danh sách tenants
+        const activeContract = list("contracts").find((c) => c.roomCode === values.roomCode && ["active", "expiring"].includes(getContractStatus(c)));
+        const tenant = list("tenants").find((item) => item.roomCode === room.code && item.status === "active") || (activeContract ? list("tenants").find((t) => t.name === activeContract.tenantName) : null);
+        
+        const electricRate = (activeContract?.electricityRate ? Number(activeContract.electricityRate) : null) || list("services").find((item) => item.name.toLowerCase().includes("điện"))?.price || 0;
+        const waterRate = (activeContract?.waterRate ? Number(activeContract.waterRate) : null) || list("services").find((item) => item.name.toLowerCase().includes("nước"))?.price || 0;
+        const fixedRates = (activeContract?.serviceFee ? Number(activeContract.serviceFee) : null) ?? list("services").filter((item) => item.unit.toLowerCase().includes("phòng")).reduce((sum, item) => sum + Number(item.price || 0), 0);
+        const roomRent = (activeContract?.rent ? Number(activeContract.rent) : null) || Number(room.price);
+
+        values.tenantName = activeContract?.tenantName || tenant?.name || "Chưa có khách thuê";
+        values.tenantId = tenant?.id || null;
+        values.rent = roomRent;
         values.electricCost = values.electricUsage * electricRate;
         values.waterCost = values.waterUsage * waterRate;
         values.serviceCost = fixedRates;
         values.total = values.rent + values.electricCost + values.waterCost + fixedRates;
         values.paid = editingRecord?.paid || 0;
         values.code = editingRecord?.code || makeId("HDN");
+
+        // Tự động đồng bộ chỉ số điện nước sang utility_readings để khách thuê thấy lịch sử chỉ số
+        if (!data.readings) data.readings = [];
+        const prevReadings = data.readings.filter((r) => r.roomCode === values.roomCode && r.period < values.period).sort((a, b) => b.period.localeCompare(a.period));
+        const lastElec = prevReadings[0]?.electricityCurrent || 0;
+        const lastWater = prevReadings[0]?.waterCurrent || 0;
+        let reading = data.readings.find((r) => r.roomCode === values.roomCode && r.period === values.period);
+        if (!reading) {
+            reading = {
+                id: makeId("CS"),
+                roomCode: values.roomCode,
+                period: values.period,
+                electricityPrevious: lastElec,
+                electricityCurrent: lastElec + Number(values.electricUsage || 0),
+                waterPrevious: lastWater,
+                waterCurrent: lastWater + Number(values.waterUsage || 0)
+            };
+            data.readings.push(reading);
+        } else {
+            reading.electricityPrevious = lastElec;
+            reading.electricityCurrent = lastElec + Number(values.electricUsage || 0);
+            reading.waterPrevious = lastWater;
+            reading.waterCurrent = lastWater + Number(values.waterUsage || 0);
+        }
     }
 
     let savedRecord = editingRecord;
@@ -641,6 +757,43 @@ function handleAction(action, entity, id) {
     if (action === "resend") return resendMemberInvite(entity, id);
     if (action === "view" && entity === "contracts") return viewContract(id);
     if (action === "terminate" && entity === "contracts") return terminateContract(id);
+    if (action === "accept_incident") return updateIncident(id, "processing");
+    if (action === "resolve_incident") return updateIncident(id, "resolved");
+    if (action === "view_incident") return viewIncident(id);
+    if (action === "delete_notice") return deleteNotice(id);
+}
+
+async function updateIncident(id, newStatus) {
+    const inc = list("incidents").find((item) => item.id === id);
+    if (!inc) return;
+    const statusText = newStatus === "processing" ? "tiếp nhận xử lý" : "đánh dấu hoàn thành";
+    if (!confirm(`Xác nhận ${statusText} sự cố ${inc.code}?`)) return;
+    try {
+        await window.rentalRepository.updateIncidentStatus(supabasePropertyId, id, newStatus);
+        inc.status = newStatus;
+        renderView("incidents");
+    } catch (error) {
+        alert(`Không cập nhật được trạng thái sự cố: ${error.message}`);
+    }
+}
+
+function viewIncident(id) {
+    const inc = list("incidents").find((item) => item.id === id);
+    if (!inc) return;
+    const severityLabels = { low: "Thấp", medium: "Trung bình", high: "Cao" };
+    const content = `Mã sự cố: ${inc.code}\nPhòng: ${inc.roomCode || "—"}\nKhách báo: ${inc.tenantName || "Khách thuê"}\nTiêu đề: ${inc.title}\nPhân loại: ${inc.category || "Khác"}\nMức độ: ${severityLabels[inc.severity] || inc.severity}\nNgày gửi: ${formatDate(inc.date ? String(inc.date).slice(0, 10) : "")}\nTrạng thái: ${inc.status === "new" ? "Mới tiếp nhận" : inc.status === "processing" ? "Đang xử lý" : "Đã hoàn thành"}\n\nNội dung chi tiết:\n${inc.description || "Không có mô tả chi tiết."}`;
+    alert(content);
+}
+
+async function deleteNotice(id) {
+    if (!confirm("Bạn có chắc muốn xóa thông báo này?")) return;
+    try {
+        await window.rentalRepository.removeNotice(supabasePropertyId, id);
+        data.notices = (data.notices || []).filter((item) => item.id !== id);
+        renderView("notices");
+    } catch (error) {
+        alert(`Không xóa được thông báo: ${error.message}`);
+    }
 }
 
 function contractText(value) {
@@ -749,6 +902,33 @@ document.addEventListener("click", (event) => {
 });
 document.getElementById("logoutProfileBtn").addEventListener("click", logout);
 document.getElementById("profileBtn").addEventListener("click", () => alert(`Tài khoản chủ trọ: ${supabaseUser?.email || ""}`));
-document.getElementById("changePasswordBtn").addEventListener("click", () => alert("Đổi mật khẩu: chức năng sẽ kết nối API tài khoản ở bước tiếp theo."));
+document.getElementById("changePasswordBtn").addEventListener("click", async () => {
+    profileMenu.classList.remove("active");
+    if (window.Swal) {
+        const { value: newPassword } = await Swal.fire({
+            title: "Đổi mật khẩu tài khoản",
+            input: "password",
+            inputLabel: "Mật khẩu mới (ít nhất 8 ký tự)",
+            inputPlaceholder: "Nhập mật khẩu mới",
+            inputAttributes: { minlength: 8, autocomplete: "new-password" },
+            showCancelButton: true,
+            confirmButtonText: "Cập nhật",
+            cancelButtonText: "Hủy",
+            inputValidator: (val) => (!val || val.length < 8) ? "Mật khẩu cần ít nhất 8 ký tự." : null
+        });
+        if (newPassword) {
+            const { error } = await window.supabaseClient.auth.updateUser({ password: newPassword });
+            if (error) Swal.fire({ icon: "error", title: "Lỗi", text: error.message });
+            else Swal.fire({ icon: "success", title: "Đã cập nhật mật khẩu", timer: 1500, showConfirmButton: false });
+        }
+    } else {
+        const newPassword = prompt("Nhập mật khẩu mới (ít nhất 8 ký tự):");
+        if (newPassword && newPassword.length >= 8) {
+            const { error } = await window.supabaseClient.auth.updateUser({ password: newPassword });
+            if (error) alert(`Lỗi: ${error.message}`);
+            else alert("Đã cập nhật mật khẩu thành công!");
+        }
+    }
+});
 
 initializeSupabaseData();

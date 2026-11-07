@@ -28,7 +28,7 @@
   }
 
   async function propertyForUser(user, role) {
-    if (role === "owner") {
+    if (role === "owner" || role === "admin") {
       const { data, error } = await window.supabaseClient.from("properties")
         .select("id,name,address").eq("owner_id", user.id).limit(1).maybeSingle();
       if (error) throw error;
@@ -55,6 +55,16 @@
     const loaded = {};
     tables.forEach((table, index) => { loaded[table] = assertSuccess(results[index]) || []; });
 
+    // Load notices as well
+    let loadedNotices = [];
+    try {
+      const { data: nData, error: nErr } = await window.supabaseClient.from("notices")
+        .select("*").eq("property_id", propertyId).order("published_at", { ascending: false });
+      if (!nErr && nData) loadedNotices = nData;
+    } catch (e) {
+      console.warn("Chưa tải được bảng notices:", e.message);
+    }
+
     const roomsById = new Map(loaded.rooms.map((room) => [room.id, room]));
     const tenantsById = new Map(loaded.tenants.map((tenant) => [tenant.id, tenant]));
     const paidByInvoice = new Map();
@@ -70,13 +80,15 @@
       tenants: loaded.tenants.map((x) => ({ id: x.id, name: x.full_name, phone: x.phone, identity: x.identity_no,
         email: x.email || "", roomCode: roomsById.get(x.room_id)?.code || "", status: x.status, authUserId: x.auth_user_id })),
       contracts: loaded.rental_contracts.map((x) => ({ id: x.id, code: x.code,
+        roomId: x.room_id, tenantId: x.tenant_id,
         roomCode: roomsById.get(x.room_id)?.code || "", tenantName: tenantsById.get(x.tenant_id)?.full_name || x.tenant_name || "",
         deposit: Number(x.deposit), start: x.start_date, end: x.end_date, status: x.status, ...(x.terms || {}) })),
       services: loaded.service_prices.map((x) => ({ id: x.id, name: x.name, unit: x.unit, price: Number(x.price) })),
       readings: loaded.utility_readings.map((x) => ({ id: x.id, roomCode: roomsById.get(x.room_id)?.code || "",
-        period: x.period, electricityPrevious: Number(x.electricity_previous), electricityCurrent: Number(x.electricity_current),
+        roomId: x.room_id, period: x.period, electricityPrevious: Number(x.electricity_previous), electricityCurrent: Number(x.electricity_current),
         waterPrevious: Number(x.water_previous), waterCurrent: Number(x.water_current) })),
       invoices: loaded.invoices.map((x) => ({ id: x.id, code: x.code, period: x.period,
+        roomId: x.room_id, tenantId: x.tenant_id,
         roomCode: roomsById.get(x.room_id)?.code || "", tenantName: tenantsById.get(x.tenant_id)?.full_name || x.tenant_name || "",
         rent: Number(x.rent_amount), electricUsage: Number(x.electricity_usage), electricCost: Number(x.electricity_amount),
         waterUsage: Number(x.water_usage), waterCost: Number(x.water_amount), serviceCost: Number(x.service_amount),
@@ -86,44 +98,63 @@
       expenses: loaded.expenses.map((x) => ({ id: x.id, date: x.spent_on, name: x.name, category: x.category,
         roomCode: x.room_code, amount: Number(x.amount), note: x.note })),
       incidents: loaded.incidents.map((x) => ({ id: x.id, code: x.code, roomCode: roomsById.get(x.room_id)?.code || "",
-        tenantId: x.tenant_id, title: x.title, category: x.category, severity: x.severity, status: x.status,
-        description: x.description, date: x.created_at, reportedBy: x.reported_by }))
+        tenantId: x.tenant_id, tenantName: tenantsById.get(x.tenant_id)?.full_name || "",
+        title: x.title, category: x.category, severity: x.severity, status: x.status,
+        description: x.description, date: x.created_at, reportedBy: x.reported_by })),
+      notices: loadedNotices.map((x) => ({ id: x.id, title: x.title, content: x.content, publishedAt: x.published_at, createdAt: x.created_at }))
     };
   }
 
   async function save(propertyId, userId, data) {
-    const roomsByCode = new Map((data.rooms || []).map((x) => [x.code, x]));
-    const tenantsByName = new Map((data.tenants || []).map((x) => [x.name, x]));
+    const roomsByCode = new Map((data.rooms || []).map((x) => [x.code?.trim().toUpperCase(), x]));
+    const tenantsByName = new Map((data.tenants || []).map((x) => [x.name?.trim().toLowerCase(), x]));
+    const tenantsById = new Map((data.tenants || []).map((x) => [x.id, x]));
+
     const rows = {
       rooms: (data.rooms || []).map((x) => ({ property_id: propertyId, id: x.id, code: x.code, name: x.name,
         floor: x.floor || "", monthly_rent: Number(x.price || 0), area: Number(x.area || 0), status: x.status || "available" })),
       tenants: (data.tenants || []).map((x) => ({ property_id: propertyId, id: x.id, full_name: x.name,
         phone: x.phone || "", identity_no: x.identity || "", email: x.email || null,
-        room_id: roomsByCode.get(x.roomCode)?.id || null, status: x.status || "active" })),
+        room_id: roomsByCode.get(x.roomCode?.trim().toUpperCase())?.id || null, status: x.status || "active" })),
       staff_members: (data.staff || []).map((x) => ({ property_id: propertyId, id: x.id, full_name: x.name,
         phone: x.phone || "", email: x.email || "", position: x.position || "", area: x.area || "", status: x.status || "active" })),
-      rental_contracts: (data.contracts || []).map((x) => ({ property_id: propertyId, id: x.id, code: x.code || x.id,
-        room_id: roomsByCode.get(x.roomCode)?.id, tenant_id: tenantsByName.get(x.tenantName)?.id || null,
-        tenant_name: x.tenantName || "", deposit: Number(x.deposit || 0), start_date: x.start, end_date: x.end, status: x.status || "active",
-        terms: x.terms || Object.fromEntries(Object.entries(x).filter(([key]) => !["id", "code", "roomCode", "tenantName", "deposit", "start", "end", "status"].includes(key))) })),
+      rental_contracts: (data.contracts || []).map((x) => {
+        const tenant = tenantsByName.get(x.tenantName?.trim().toLowerCase()) || tenantsById.get(x.tenantId);
+        return {
+          property_id: propertyId, id: x.id, code: x.code || x.id,
+          room_id: roomsByCode.get(x.roomCode?.trim().toUpperCase())?.id || x.roomId,
+          tenant_id: tenant?.id || x.tenantId || null,
+          tenant_name: x.tenantName || tenant?.name || "",
+          deposit: Number(x.deposit || 0), start_date: x.start, end_date: x.end, status: x.status || "active",
+          terms: x.terms || Object.fromEntries(Object.entries(x).filter(([key]) => !["id", "code", "roomCode", "roomId", "tenantName", "tenantId", "deposit", "start", "end", "status"].includes(key)))
+        };
+      }),
       service_prices: (data.services || []).map((x) => ({ property_id: propertyId, id: x.id, name: x.name,
         unit: x.unit, price: Number(x.price || 0) })),
-      utility_readings: (data.readings || []).filter((x) => roomsByCode.has(x.roomCode)).map((x) => ({
-        property_id: propertyId, id: x.id, room_id: roomsByCode.get(x.roomCode).id, period: x.period,
+      utility_readings: (data.readings || []).filter((x) => roomsByCode.has(x.roomCode?.trim().toUpperCase()) || x.roomId).map((x) => ({
+        property_id: propertyId, id: x.id,
+        room_id: roomsByCode.get(x.roomCode?.trim().toUpperCase())?.id || x.roomId, period: x.period,
         electricity_previous: Number(x.electricityPrevious || 0), electricity_current: Number(x.electricityCurrent || 0),
         water_previous: Number(x.waterPrevious || 0), water_current: Number(x.waterCurrent || 0)
       })),
-      invoices: (data.invoices || []).map((x) => ({ property_id: propertyId, id: x.id, code: x.code || x.id,
-        room_id: roomsByCode.get(x.roomCode)?.id, tenant_id: tenantsByName.get(x.tenantName)?.id || null,
-        tenant_name: x.tenantName || "", period: x.period, rent_amount: Number(x.rent || 0),
-        electricity_usage: Number(x.electricUsage || 0), electricity_amount: Number(x.electricCost || 0),
-        water_usage: Number(x.waterUsage || 0), water_amount: Number(x.waterCost || 0),
-        service_amount: Number(x.serviceCost || 0), total_amount: Number(x.total || 0), due_date: x.dueDate || null })),
+      invoices: (data.invoices || []).map((x) => {
+        const tenant = tenantsByName.get(x.tenantName?.trim().toLowerCase()) || tenantsById.get(x.tenantId);
+        return {
+          property_id: propertyId, id: x.id, code: x.code || x.id,
+          room_id: roomsByCode.get(x.roomCode?.trim().toUpperCase())?.id || x.roomId,
+          tenant_id: tenant?.id || x.tenantId || null,
+          tenant_name: x.tenantName || tenant?.name || "", period: x.period, rent_amount: Number(x.rent || 0),
+          electricity_usage: Number(x.electricUsage || 0), electricity_amount: Number(x.electricCost || 0),
+          water_usage: Number(x.waterUsage || 0), water_amount: Number(x.waterCost || 0),
+          service_amount: Number(x.serviceCost || 0), total_amount: Number(x.total || 0), due_date: x.dueDate || null
+        };
+      }),
       expenses: (data.expenses || []).filter((x) => x.date).map((x) => ({ property_id: propertyId, id: x.id,
         spent_on: x.date, name: x.name, category: x.category || "Khác", room_code: x.roomCode || "",
         amount: Number(x.amount || 0), note: x.note || "" })),
-      incidents: (data.incidents || []).filter((x) => roomsByCode.has(x.roomCode)).map((x) => ({
-        property_id: propertyId, id: x.id, code: x.code || x.id, room_id: roomsByCode.get(x.roomCode).id,
+      incidents: (data.incidents || []).filter((x) => roomsByCode.has(x.roomCode?.trim().toUpperCase()) || x.roomId).map((x) => ({
+        property_id: propertyId, id: x.id, code: x.code || x.id,
+        room_id: roomsByCode.get(x.roomCode?.trim().toUpperCase())?.id || x.roomId,
         tenant_id: x.tenantId || null, title: x.title, category: x.category || "Khác", severity: x.severity || "medium",
         status: x.status || "new", description: x.description || "", reported_by: x.reportedBy || userId
       }))
@@ -192,5 +223,36 @@
       redirect_to: redirectTo.href });
   }
 
-  window.rentalRepository = { propertyForUser, load, save, remove, addPayment, inviteMember, resendMemberInvite, setManagerEnabled, isInitialized, markInitialized };
+  async function addNotice(propertyId, { title, content }) {
+    const { data, error } = await window.supabaseClient.from("notices").insert({
+      property_id: propertyId,
+      title: title.trim(),
+      content: (content || "").trim(),
+      published_at: new Date().toISOString()
+    }).select().single();
+    if (error) throw error;
+    return data;
+  }
+
+  async function removeNotice(propertyId, noticeId) {
+    const { error } = await window.supabaseClient.from("notices").delete()
+      .eq("property_id", propertyId).eq("id", noticeId);
+    if (error) throw error;
+  }
+
+  async function updateIncidentStatus(propertyId, incidentId, status) {
+    const { data, error } = await window.supabaseClient.from("incidents")
+      .update({ status })
+      .eq("property_id", propertyId)
+      .eq("id", incidentId)
+      .select().single();
+    if (error) throw error;
+    return data;
+  }
+
+  window.rentalRepository = {
+    propertyForUser, load, save, remove, addPayment, inviteMember,
+    resendMemberInvite, setManagerEnabled, isInitialized, markInitialized,
+    addNotice, removeNotice, updateIncidentStatus
+  };
 })();

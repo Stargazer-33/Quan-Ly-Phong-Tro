@@ -32,7 +32,33 @@
   }
 
   async function context(userId) {
-    return window.getTenantProfile(userId);
+    const tenant = await window.getTenantProfile(userId);
+    if (!tenant) return null;
+
+    // Nếu tenant chưa có room_id, kiểm tra xem có hợp đồng đang active nào không để tự đồng bộ
+    if (!tenant.room_id) {
+      try {
+        const { data: activeContract } = await client().from("rental_contracts")
+          .select("room_id")
+          .eq("property_id", tenant.property_id)
+          .eq("tenant_id", tenant.id)
+          .eq("status", "active")
+          .limit(1)
+          .maybeSingle();
+
+        if (activeContract?.room_id) {
+          tenant.room_id = activeContract.room_id;
+          // Đồng bộ lại vào bảng tenants
+          await client().from("tenants")
+            .update({ room_id: activeContract.room_id })
+            .eq("property_id", tenant.property_id)
+            .eq("id", tenant.id);
+        }
+      } catch (err) {
+        console.warn("[tenantData] Không thể tự động tra cứu room_id từ hợp đồng:", err.message);
+      }
+    }
+    return tenant;
   }
 
   async function load({ propertyId, tenantId, roomId }) {

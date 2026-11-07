@@ -783,7 +783,25 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ------------------------------ THÀNH VIÊN ------------------------------ */
 
   function renderMembers() {
-    const members = state.data.members;
+    let members = state.data.members || [];
+    const occupantsText = (state.data.contract?.terms?.occupants || "").trim();
+
+    // Nếu bảng room_members chưa có dòng nào, lấy từ điều khoản occupants trong hợp đồng
+    if (!members.length && occupantsText) {
+      const lines = occupantsText.split(/[\n;]+/).map((s) => s.trim()).filter(Boolean);
+      members = lines.map((line) => {
+        // Hỗ trợ định dạng "Họ tên - CCCD" hoặc "Họ tên"
+        const parts = line.split(/[-–—]/).map((p) => p.trim());
+        return {
+          full_name: parts[0] || line,
+          phone: "—",
+          identity_no: parts[1] || "Theo hợp đồng",
+          relation: "Người ở cùng",
+          status: "active",
+        };
+      });
+    }
+
     el.mainContent.innerHTML = `
       <div class="card">
         <h2>Danh sách người đang ở trong phòng</h2>
@@ -795,7 +813,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   <th>STT</th>
                   <th>Họ tên</th>
                   <th>SĐT</th>
-                  <th>CCCD</th>
+                  <th>CCCD / Ghi chú</th>
                   <th>Vai trò</th>
                   <th>Trạng thái</th>
                 </tr>
@@ -813,7 +831,7 @@ document.addEventListener("DOMContentLoaded", () => {
               </tbody>
             </table>
           </div>` : emptyState("Chưa có thông tin thành viên", "Chủ trọ là người nhập và cập nhật danh sách thành viên ở cùng.")}
-        <p class="muted form-note">Danh sách do chủ trọ quản lý. Nếu có thay đổi, vui lòng liên hệ chủ trọ để cập nhật.</p>
+        <p class="muted form-note">Danh sách do chủ trọ quản lý theo hợp đồng. Nếu có thay đổi, vui lòng liên hệ chủ trọ để cập nhật.</p>
       </div>`;
   }
 
