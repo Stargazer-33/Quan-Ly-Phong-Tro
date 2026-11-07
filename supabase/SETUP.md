@@ -34,7 +34,16 @@ Khi thay đổi file Edge Function, chạy lại `npx supabase functions deploy 
 
 Supabase Edge Function cần biến môi trường server-side `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Runtime của Supabase thường cung cấp các biến project này sẵn. Nếu dashboard báo thiếu biến, cấu hình trong **Edge Functions → Secrets**; không đưa service-role key vào frontend/Git và không gửi key đó trong chat.
 
-Trong **Authentication → URL Configuration**, thêm URL trang thiết lập tài khoản vào **Redirect URLs** một lần. Ví dụ nếu website đã deploy tại `https://ten-mien-cua-ban.com`, thêm `https://ten-mien-cua-ban.com/frontend/account-setup.html?account_setup=1`. Mở Admin từ cùng website đã deploy trước khi gửi lời mời; email sẽ đưa người nhận thẳng tới trang thiết lập này. Khi chạy thử bằng Live Server, thêm URL chứa host/cổng đang dùng, ví dụ `http://127.0.0.1:5500/frontend/account-setup.html?account_setup=1`; link localhost chỉ mở được trên máy có web server đó đang chạy. Người nhận ngoài mạng cần website đã deploy công khai. Email nhân viên/khách thuê phải là email họ mở được để nhận lời mời và đặt mật khẩu. Nếu đổi mã nguồn Edge Function, deploy lại bằng `npx supabase functions deploy provision-member`.
+Mở **Authentication → URL Configuration** trong Supabase Dashboard và thêm hai Redirect URLs sau (Live Server mặc định dùng cổng 5500):
+
+```text
+http://127.0.0.1:5500/frontend/index.html?account_setup=1
+http://localhost:5500/frontend/index.html?account_setup=1
+```
+
+Máy gửi lời mời và máy nhận cần mở trang qua Live Server với cùng cổng 5500, dùng `localhost` hoặc `127.0.0.1` (không mở bằng địa chỉ IP LAN). Link email sẽ quay về `index.html` trên máy của người bấm; địa chỉ loopback trong trình duyệt của họ trỏ về chính máy họ. Người nhận bấm **Accept invitation**, đặt mật khẩu ở trang mở ra, rồi được chuyển tự động tới trang quản lý theo vai trò. Nếu cổng 5500 đang bận, đóng server khác hoặc đổi cổng ở Live Server trên cả hai máy cho giống nhau và thêm URL tương ứng vào Redirect URLs.
+
+Trong **Authentication → Email Templates**, giữ link xác nhận dùng `{{ .ConfirmationURL }}` cho cả **Invite user** và **Reset password**; tránh thay bằng một URL `localhost` cố định hoặc chỉ dùng `{{ .SiteURL }}`. Bật **Custom SMTP** nếu cần gửi thư tới email ngoài team Supabase. Các máy khác chỉ cần pull cùng code, mở `frontend/index.html` bằng Live Server và dùng chung project Supabase.
 
 Trong Admin:
 - Thêm nhân viên và nhập email để gửi lời mời role `manager`, gán vào cơ sở của chủ trọ.
